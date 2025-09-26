@@ -26,7 +26,14 @@ function onProductChange(item) {
   const p = props.products.find(x => x.id === item.productId)
   if (p) {
     item.description = p.name
-    item.unitPrice = p.price || 0
+    // Apply product discount to derive effective unit price
+    const base = Number(p.price) || 0
+    const dtype = p.discountType || 'none'
+    const dval = Number(p.discountValue) || 0
+    let effective = base
+    if (dtype === 'fixed') effective = Math.max(0, base - dval)
+    else if (dtype === 'percent') effective = Math.max(0, base * (1 - dval / 100))
+    item.unitPrice = Number(effective.toFixed(2))
     if (p.taxId) item.taxId = p.taxId
   }
   emit('update')

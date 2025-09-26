@@ -1,5 +1,5 @@
 <script setup>
-import { reactive } from 'vue'
+import { reactive, computed } from 'vue'
 import { uid } from '../store'
 
 const props = defineProps({
@@ -8,6 +8,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const contactTypes = ['primary', 'secondary', 'billing', 'support', 'emergency']
+const hasPrimary = computed(() => props.modelValue.some(c => c.type === 'primary'))
 
 function update() { emit('update:modelValue', props.modelValue) }
 function add() {
@@ -33,7 +34,14 @@ function removeAt(i) {
           <div class="col-md-3">
             <label class="form-label">Type</label>
             <select class="form-select form-select-sm" v-model="c.type" @change="update">
-              <option v-for="t in contactTypes" :key="t" :value="t">{{ t }}</option>
+              <option
+                v-for="t in contactTypes"
+                :key="t"
+                :value="t"
+                :disabled="t==='primary' && hasPrimary && c.type!=='primary'"
+              >
+                {{ t }}
+              </option>
             </select>
           </div>
           <div class="col-md-3">

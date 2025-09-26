@@ -32,13 +32,42 @@ textarea.form-control:focus {
   box-shadow: 0 0 0 .2rem var(--purple-weak) !important;
 }
 
+/* Slim inputs and purple borders */
+:root {
+  --purple: #6f42c1;
+  --purple-weak: rgba(111, 66, 193, .2);
+}
+.form-control,
+.form-select,
+textarea.form-control {
+  border: 1px solid var(--purple) !important;
+  padding: .375rem .5rem !important;
+  font-size: .875rem !important;
+  border-radius: .5rem;
+}
+.form-control:focus,
+.form-select:focus,
+textarea.form-control:focus {
+  border-color: var(--purple) !important;
+  box-shadow: 0 0 0 .2rem var(--purple-weak) !important;
+}
+
 /* Print-friendly invoice paper */
 .print-area {
   background: #fff;
-  color: #000;
+  color: #222;
   padding: 24px;
   border-radius: 8px;
   border: 1px solid rgba(0,0,0,.075);
+}
+.print-area h4 { font-size: 18px; font-weight: 700; color: #4a148c; }
+.print-area table { font-size: 12px; }
+.print-area .totals { font-weight: 600; }
+
+.print-area.pdf-mode {
+  /* tighter fonts for A4 fit when exporting */
+  font-size: 11px;
+  padding: 16px;
 }
 
 @media print {

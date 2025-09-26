@@ -5,8 +5,9 @@ import App from './App.vue'
 import router from './router'
 
 // Load Bootstrap via CDN (CSS + JS) before mounting the app
-(function ensureBootstrapCdn() {
-  const CSS_HREF = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css'
+;(function ensureBootstrapCdn() {
+  // Use Bootswatch Pulse theme (includes Bootstrap CSS)
+  const CSS_HREF = 'https://bootswatch.com/5/pulse/bootstrap.min.css'
   const JS_SRC = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js'
   if (!document.querySelector(`link[href="${CSS_HREF}"]`)) {
     const link = document.createElement('link')

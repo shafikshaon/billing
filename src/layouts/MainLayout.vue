@@ -7,7 +7,7 @@ import { resetStore } from '../store'
 const route = useRoute()
 const routes = computed(() =>
   router.getRoutes()
-    .filter(r => r.meta && r.name && r.path !== '/')
+    .filter(r => r.meta && r.name && r.path !== '/' && !r.meta?.hidden)
     .map(r => ({
       name: r.name,
       path: r.path,
@@ -23,9 +23,9 @@ function onResetClick() {
 </script>
 
 <template>
-  <div class="d-flex min-vh-100">
+  <div class="d-flex vh-100 overflow-hidden">
     <!-- Sidebar -->
-    <aside class="border-end bg-light p-3 d-flex flex-column" style="width: 240px;">
+    <aside class="border-end bg-light p-3 d-flex flex-column position-sticky top-0 vh-100 overflow-auto flex-shrink-0" style="width: 240px;">
       <div class="d-flex align-items-center mb-3">
         <span class="fs-4 me-2">💼</span>
         <span class="fw-bold">Invoice</span>
@@ -53,14 +53,14 @@ function onResetClick() {
     </aside>
 
     <!-- Main -->
-    <div class="flex-grow-1 d-flex flex-column">
+    <div class="flex-grow-1 d-flex flex-column" style="min-height: 0;">
       <header class="border-bottom bg-white sticky-top">
         <div class="container-fluid py-2 d-flex justify-content-between align-items-center">
           <div class="h5 mb-0"><slot name="title" /></div>
           <div><slot name="actions" /></div>
         </div>
       </header>
-      <main class="container-fluid py-3">
+      <main class="container-fluid py-3 flex-grow-1 overflow-auto">
         <slot />
       </main>
     </div>
@@ -69,7 +69,29 @@ function onResetClick() {
 
 <style scoped>
 /* Keep styles minimal; Bootstrap handles most styling */
+
+/* Sidebar: ensure it doesn't shrink in the flex row */
+aside[style] {
+  flex-shrink: 0;
+}
+
+/* Make slotted forms within main content half width on larger screens */
+:deep(main form) {
+  width: 50%;
+  min-width: 320px;
+}
+
+/* Ensure inputs don't overstretch within constrained forms */
+:deep(main form .form-control),
+:deep(main form input),
+:deep(main form select),
+:deep(main form textarea) {
+  width: 100%;
+}
+
+/* Responsive tweaks */
 @media (max-width: 992px) {
   aside[style] { width: 200px !important; }
+  :deep(main form) { width: 100%; min-width: 0; }
 }
 </style>
