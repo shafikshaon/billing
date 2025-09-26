@@ -114,3 +114,82 @@ textarea.form-control:focus {
 .print-area{
     font-size: 0.7rem;
 }
+
+/* ---- Invoice form UX helpers ---- */
+.subsection-title{
+  font-size: .8rem;
+  font-weight: 700;
+  color: #4a148c;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  margin: .25rem 0 .25rem;
+}
+
+.form-sticky-actions{
+  position: sticky;
+  bottom: -1px;
+  z-index: 20;
+  background: #ffffffcc;
+  backdrop-filter: blur(3px);
+  border-top: 1px solid rgba(0,0,0,.06);
+}
+.form-sticky-actions .badge{
+  background: #f8f9fa;
+  color: #333;
+  border: 1px solid rgba(0,0,0,.06);
+  font-weight: 600;
+}
+
+/* --- Invoice visual refresh --- */
+.invoice-header h4 { color:#4a148c; font-weight:700; }
+.invoice-brand strong { font-size: 1rem; }
+.muted-label { text-transform: uppercase; letter-spacing: .03em; font-size: .7rem; color: #6c757d; }
+
+.info-block {
+  background: #f8f9fa;
+  border: 1px solid rgba(0,0,0,.06);
+  border-radius: .5rem;
+  padding: .5rem .75rem;
+}
+.info-block .fw-semibold { font-size: .95rem; }
+
+.table-invoice thead th {
+  background: #faf7ff;
+  border-bottom: 1px solid #e6dcff !important;
+}
+.table-invoice tbody tr:nth-child(even) td {
+  background: #fcfcff;
+}
+
+.totals-card {
+  min-width: 240px;
+  max-width: 280px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: .5rem;
+  padding: .6rem .8rem;
+  box-shadow: 0 6px 12px rgba(111,66,193,.06);
+  font-size: .9rem;
+}
+.totals-card .line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: .75rem;
+  padding: .125rem 0;
+}
+.totals-card .grand {
+  border-top: 1px dashed rgba(0,0,0,.15);
+  margin-top: .25rem;
+  padding-top: .35rem;
+  font-weight: 700;
+  font-size: 1rem;
+}
+.totals-card .muted { color: #6c757d; font-size: .75rem; }
+
+/* Print support: keep borders visible */
+@media print {
+  .info-block { background: #fff !important; border-color: #ccc !important; }
+  .table-invoice thead th { background: #eee !important; border-color: #ccc !important; }
+  .totals-card { box-shadow: none !important; border-color: #bbb !important; }
+}

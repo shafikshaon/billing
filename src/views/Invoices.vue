@@ -1,6 +1,6 @@
 <script setup>
 import {computed, reactive, ref, watch, onMounted} from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import SectionCard from '../components/SectionCard.vue'
 import LineItemsEditor from '../components/LineItemsEditor.vue'
 import { store, uid } from '../store'
@@ -34,6 +34,7 @@ const draft = reactive({
 const itemsEditor = ref(null)
 const printRef = ref(null)
 const route = useRoute()
+const router = useRouter()
 
 onMounted(() => {
   if (route.params.id) {
@@ -103,6 +104,31 @@ const totals = computed(() => {
   const ship = shippingFee.value
   return { sub, tax, shipping: ship, total: sub + tax + ship }
 })
+
+// Linked Credit Notes for this invoice (when editing existing)
+function cnTotal(cn) {
+  const itemsTotal = (cn.items || []).reduce((acc, it) => {
+    const base = (Number(it.qty)||0) * (Number(it.unitPrice)||0)
+    const dtype = it.discountType || 'none'
+    const dval = Number(it.discountValue)||0
+    const disc = dtype === 'percent' ? base * dval/100 : dtype === 'fixed' ? (Number(it.qty)||0) * dval : 0
+    const net = Math.max(0, base - disc)
+    const tax = (() => {
+      const t = store.taxes.find(x=>x.id===it.taxId)
+      return t ? net * (Number(t.rate)||0)/100 : 0
+    })()
+    return acc + net + tax
+  }, 0)
+  return itemsTotal
+}
+const creditNotes = computed(() =>
+  (store.creditNotes || []).filter(cn =>
+    !!draft.id &&
+    cn.originalInvoiceId === draft.id &&
+    (cn.status === 'issued' || cn.status === 'applied')
+  )
+)
+const creditsTotal = computed(() => creditNotes.value.reduce((sum, cn) => sum + cnTotal(cn), 0))
 
 // Shipping helpers
 const customerRegion = computed(() => {
@@ -278,6 +304,102 @@ function printInvoice() {
   w.document.close()
 }
 
+function printReceipt() {
+  const merch = merchant.value
+  const cust = customer.value
+  const sm = shippingMethod.value
+  const creditAmt = Number((creditsTotal?.value || 0).toFixed(2))
+  const sub = Number(totals.value.sub.toFixed(2))
+  const tax = Number(totals.value.tax.toFixed(2))
+  const ship = Number(totals.value.shipping.toFixed(2))
+  const gross = Number(totals.value.total.toFixed(2))
+  const received = Number(draft.paidInFull ? gross : (Number(draft.receivedAmount||0) - Number(draft.changeAmount||0)))
+  const balance = Math.max(0, gross - creditAmt - received)
+
+  const itemsHtml = (draft.items||[]).map(it => {
+    const name = (productById(it.productId)?.name || it.description || '—')
+    const qty = Number(it.qty||0)
+    const unit = Number(it.unitPrice||0).toFixed(2)
+    const net = Number(lineNet(it).toFixed(2))
+    return `
+      <div class="row">
+        <div class="name">${name}</div>
+        <div class="meta">${qty} x ${unit} = ${net.toFixed(2)}</div>
+      </div>
+    `
+  }).join('')
+
+  const w = window.open('', '_blank', 'noopener,noreferrer')
+  if (!w) return
+  w.document.write(`
+    <html>
+      <head>
+        <meta charset="utf-8"/>
+        <title>Receipt ${draft.number || ''}</title>
+        <style>
+          @page { size: 80mm auto; margin: 0; }
+          html, body { padding:0; margin:0; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+          .receipt { width: 72mm; padding: 4mm 4mm 8mm; }
+          .center { text-align:center; }
+          .muted { color:#555; }
+          .row { margin: 2px 0; }
+          .name { font-size: 12px; }
+          .meta { font-size: 11px; color:#444; display:flex; justify-content: space-between; }
+          .hr { border-top: 1px dashed #000; margin: 6px 0; }
+          .totals .line { display:flex; justify-content: space-between; font-size: 12px; }
+          .totals .grand { font-weight: 700; }
+          .small { font-size: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="receipt">
+          <div class="center">
+            <div style="font-weight:700">${merch?.name || ''}</div>
+            <div class="small muted">${merchantSelectedAddress?.value ? (merchantSelectedAddress.value.line1 + ', ' + merchantSelectedAddress.value.city) : ''}</div>
+            <div class="small">Invoice: ${draft.number || ''}</div>
+            <div class="small">Date: ${draft.date || ''}</div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="small">Customer: ${cust?.name || ''}</div>
+          ${customerSelectedAddress?.value ? `<div class="small muted">${customerSelectedAddress.value.city}</div>` : ''}
+
+          <div class="hr"></div>
+
+          ${itemsHtml || '<div class="small muted">No items</div>'}
+
+          <div class="hr"></div>
+
+          <div class="totals">
+            <div class="line"><span>Subtotal</span><span>${sub.toFixed(2)}</span></div>
+            <div class="line"><span>Tax</span><span>${tax.toFixed(2)}</span></div>
+            ${ship > 0 ? `<div class="line"><span>Shipping</span><span>${ship.toFixed(2)}</span></div>` : ''}
+            <div class="line grand"><span>Total</span><span>${gross.toFixed(2)}</span></div>
+            ${creditAmt > 0 ? `<div class="line"><span>Credits</span><span>-${creditAmt.toFixed(2)}</span></div>` : ''}
+            <div class="line"><span>Received</span><span>${received.toFixed(2)}</span></div>
+            <div class="line"><span>Balance</span><span>${balance.toFixed(2)}</span></div>
+          </div>
+
+          ${sm ? `<div class="small muted" style="margin-top:6px">Shipping via ${sm.name}</div>` : ''}
+
+          <div class="center small" style="margin-top:8px">— Thank you —</div>
+        </div>
+
+        <script>
+          window.addEventListener('load', function(){
+            setTimeout(function(){
+              try { window.focus(); window.print(); } finally { window.close(); }
+            }, 150);
+          });
+        <\/script>
+      </body>
+    </html>
+  `)
+  w.document.close()
+}
+
 // Lazy-load helpers for PDF download
 function loadScript(src) {
   return new Promise((resolve, reject) => {
@@ -328,7 +450,8 @@ async function downloadPdf() {
   const scheduleRows = paymentSchedule.value.map(r => [r.label, r.date, { text: r.amount.toFixed(2), alignment: 'right' }])
   const received = Number(draft.receivedAmount||0)
   const changeAmt = Number(draft.changeAmount||0)
-  const balanceDue = Math.max(0, (totals.value.total||0) - received)
+  const netPaid = draft.paidInFull ? (totals.value.total||0) : Math.max(0, received - changeAmt)
+  const balanceDue = Math.max(0, (totals.value.total||0) - netPaid)
   const termsText = (store.termsTemplates.find(t => t.id === draft.termsTemplateId)?.content || '').trim()
 
   const body = [
@@ -447,6 +570,7 @@ async function downloadPdf() {
     <div class="col-lg-6">
       <SectionCard title="Create Invoice">
         <div class="row g-3">
+          <div class="col-12"><div class="subsection-title">Invoice Info</div></div>
           <div class="col-md-4">
             <label class="form-label">Invoice Number</label>
             <div class="d-flex gap-2">
@@ -463,6 +587,7 @@ async function downloadPdf() {
             <input class="form-control" type="date" v-model="draft.dueDate" />
           </div>
 
+          <div class="col-12"><div class="subsection-title mt-1">Parties</div></div>
           <div class="col-md-6">
             <label class="form-label">Merchant</label>
             <select class="form-select" v-model="draft.merchantId" :disabled="!!draft.id">
@@ -523,12 +648,13 @@ async function downloadPdf() {
             </select>
           </div>
 
+          <div class="col-12"><div class="subsection-title mt-2">Shipping</div></div>
           <div class="col-md-6">
             <label class="form-label">Shipping Method</label>
             <select class="form-select" v-model="draft.shippingMethodId">
               <option value="">Select shipping</option>
               <option v-for="s in shippingOptions" :key="s.id" :value="s.id">
-                {{ s.name }} — {{ s.chargeType==='fixed' ? ('৳'+Number(s.amount).toFixed(0)) : (Number(s.amount)+'%') }}
+                {{ s.name }} — ৳{{ autoShippingFor(s).toFixed(2) }}{{ s.chargeType==='percent' ? (' ('+Number(s.amount)+'%)') : '' }}{{ s.freeThreshold ? (' · free over ৳'+Number(s.freeThreshold).toFixed(0)) : '' }}
               </option>
             </select>
             <div v-if="shippingMethod" class="mt-2">
@@ -556,6 +682,7 @@ async function downloadPdf() {
           </div>
 
           <!-- Payment capture -->
+          <div class="col-12"><div class="subsection-title mt-2">Payment</div></div>
           <div class="col-12">
             <div class="row g-2 align-items-end">
               <div class="col-sm-4">
@@ -575,6 +702,7 @@ async function downloadPdf() {
             </div>
           </div>
 
+          <div class="col-12"><div class="subsection-title mt-2">Items & Notes</div></div>
           <div class="col-12">
             <LineItemsEditor
               ref="itemsEditor"
@@ -591,24 +719,26 @@ async function downloadPdf() {
           </div>
         </div>
 
-        <!-- Totals badges -->
-        <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
-          <span class="badge text-bg-light border">Subtotal: {{ totals.sub.toFixed(2) }}</span>
-          <span class="badge text-bg-light border">Tax: {{ totals.tax.toFixed(2) }}</span>
-          <span class="badge text-bg-light border">Shipping: {{ (totals.shipping||0).toFixed(2) }}</span>
-          <span class="badge text-bg-light border">Total: {{ totals.total.toFixed(2) }}</span>
-        </div>
-
-        <!-- Centered primary actions -->
-        <div class="d-flex justify-content-center gap-3 mt-3">
-          <button class="btn btn-outline-secondary px-4" type="button" @click="reset">Reset</button>
-          <button class="btn btn-success px-4" type="button" @click="save">Save</button>
-        </div>
-
-        <!-- Secondary actions (centered) -->
-        <div class="d-flex justify-content-center gap-3 mt-2">
-          <button class="btn btn-primary px-4" type="button" @click="downloadPdf">Download PDF</button>
-          <button class="btn btn-outline-secondary px-4" type="button" @click="printInvoice">Print</button>
+        <!-- Sticky actions + quick totals -->
+        <div class="form-sticky-actions mt-3">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span class="badge">Subtotal: {{ totals.sub.toFixed(2) }}</span>
+              <span class="badge">Tax: {{ totals.tax.toFixed(2) }}</span>
+              <span class="badge">Shipping: {{ (totals.shipping||0).toFixed(2) }}</span>
+              <span class="badge">Credits: -{{ (creditsTotal||0).toFixed(2) }}</span>
+              <span class="badge">Total: {{ totals.total.toFixed(2) }}</span>
+              <span class="badge">Net: {{ (totals.total - (creditsTotal||0)).toFixed(2) }}</span>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-secondary" type="button" @click="reset">Reset</button>
+              <button class="btn btn-outline-secondary" type="button" @click="printInvoice">Print</button>
+                <button class="btn btn-outline-secondary" type="button" @click="printReceipt">Receipt</button>
+              <button class="btn btn-primary" type="button" @click="downloadPdf">Download PDF</button>
+              <button v-if="draft.id" class="btn btn-outline-secondary" type="button" @click="() => router.push(`/credit-notes/new?invoiceId=${draft.id}`)">New Credit Note</button>
+              <button class="btn btn-success" type="button" @click="save">Save</button>
+            </div>
+          </div>
         </div>
       </SectionCard>
     </div>
@@ -616,8 +746,8 @@ async function downloadPdf() {
     <div class="col-lg-6">
       <SectionCard title="Preview">
         <div class="print-area" ref="printRef">
-          <div class="d-flex justify-content-between mb-3">
-            <div>
+          <div class="invoice-header d-flex justify-content-between align-items-start border-bottom pb-2 mb-3">
+            <div class="invoice-brand">
               <strong>{{ merchant?.name || 'Select Merchant' }}</strong><br/>
               <span v-if="merchantSelectedAddress">{{ merchantSelectedAddress.line1 }}, {{ merchantSelectedAddress.city }}</span><br v-if="merchantSelectedAddress"/>
               <span v-if="merchant?.taxId" class="text-muted small">VAT/TAX ID: {{ merchant.taxId }}</span><br v-if="merchant?.taxId"/>
@@ -625,21 +755,21 @@ async function downloadPdf() {
             </div>
             <div class="text-end">
               <h4 class="mb-1">Invoice</h4>
-              <div>No: {{ draft.number || '(not set)' }}</div>
-              <div>Date: {{ draft.date }}</div>
-              <div>Due: {{ draft.dueDate }}</div>
+              <div><span class="text-muted">No:</span> {{ draft.number || '(not set)' }}</div>
+              <div><span class="text-muted">Date:</span> {{ draft.date }}</div>
+              <div><span class="text-muted">Due:</span> {{ draft.dueDate }}</div>
             </div>
           </div>
 
-          <div class="mb-2">
-            <div><strong>Bill To</strong></div>
-            <div>{{ customer?.name || 'Select Customer' }}</div>
+          <div class="mb-2 info-block">
+            <div class="text-uppercase muted-label">Bill To</div>
+            <div class="fw-semibold">{{ customer?.name || 'Select Customer' }}</div>
             <div v-if="customerSelectedAddress">{{ customerSelectedAddress.line1 }}, {{ customerSelectedAddress.city }}</div>
             <div v-if="customer?.taxId" class="text-muted small">VAT/TAX ID: {{ customer.taxId }}</div>
             <div v-if="customerSelectedContact" class="text-muted small">{{ customerSelectedContact.name }}<span v-if="customerSelectedContact.email"> · {{ customerSelectedContact.email }}</span><span v-if="customerSelectedContact.phone"> · {{ customerSelectedContact.phone }}</span></div>
           </div>
 
-          <table class="table table-sm align-middle mt-2">
+          <table class="table table-sm table-invoice align-middle mt-2">
             <thead class="table-light">
               <tr>
                 <th>Product / Description</th>
@@ -670,26 +800,32 @@ async function downloadPdf() {
             </tbody>
           </table>
 
-          <div class="mt-2 text-end">
-            <div>Subtotal: {{ totals.sub.toFixed(2) }}</div>
-            <div>Tax: {{ totals.tax.toFixed(2) }}</div>
-            <div>
-              Shipping:
-              <template v-if="draft.shippingFree">
-                <span class="text-decoration-line-through">{{ Number(draft.shippingAmount||0).toFixed(2) }}</span>
-                <span class="ms-1">0.00</span>
-              </template>
-              <template v-else>
-                {{ (totals.shipping||0).toFixed(2) }}
-              </template>
+          <div class="mt-2 d-flex">
+            <div class="flex-grow-1"></div>
+            <div class="totals-card">
+              <div class="line"><span>Subtotal</span><span>{{ totals.sub.toFixed(2) }}</span></div>
+              <div class="line"><span>Tax</span><span>{{ totals.tax.toFixed(2) }}</span></div>
+              <div class="line">
+                <span>Shipping</span>
+                <span>
+                  <template v-if="draft.shippingFree">
+                    <span class="text-decoration-line-through">{{ Number(draft.shippingAmount||0).toFixed(2) }}</span>
+                    <span class="ms-1">0.00</span>
+                  </template>
+                  <template v-else>
+                    {{ (totals.shipping||0).toFixed(2) }}
+                  </template>
+                </span>
+              </div>
+              <div class="line grand"><span>Total</span><span>{{ totals.total.toFixed(2) }}</span></div>
+              <div class="line" v-if="creditsTotal > 0"><span>Credits</span><span>-{{ creditsTotal.toFixed(2) }}</span></div>
+              <div class="line" v-if="draft.paidInFull || Number(draft.receivedAmount||0) > 0"><span>Received</span><span>{{ Number(draft.receivedAmount||0).toFixed(2) }}</span></div>
+              <div class="line" v-if="Number(draft.changeAmount||0) > 0"><span>Change</span><span>{{ Number(draft.changeAmount||0).toFixed(2) }}</span></div>
+              <div class="line" v-if="draft.paidInFull || Number(draft.receivedAmount||0) > 0 || creditsTotal>0"><span class="fw-semibold">Balance Due</span><span class="fw-semibold">{{ Math.max(0, totals.total - creditsTotal - (draft.paidInFull ? totals.total : Math.max(0, Number(draft.receivedAmount||0) - Number(draft.changeAmount||0)))).toFixed(2) }}</span></div>
+              <div class="muted small mt-1" v-if="shippingMethod">
+                Shipping via {{ shippingMethod?.name }} ({{ shippingMethod?.leadDaysMin }}–{{ shippingMethod?.leadDaysMax }} days)
+              </div>
             </div>
-            <div><strong>Total: {{ totals.total.toFixed(2) }}</strong></div>
-            <div v-if="draft.paidInFull || Number(draft.receivedAmount||0) > 0">Received: {{ Number(draft.receivedAmount||0).toFixed(2) }}</div>
-            <div v-if="Number(draft.changeAmount||0) > 0">Change: {{ Number(draft.changeAmount||0).toFixed(2) }}</div>
-            <div v-if="draft.paidInFull || Number(draft.receivedAmount||0) > 0"><strong>Balance Due: {{ Math.max(0, totals.total - Number(draft.receivedAmount||0)).toFixed(2) }}</strong></div>
-          </div>
-          <div class="text-muted small text-end" v-if="shippingMethod">
-            Shipping via {{ shippingMethod?.name }} ({{ shippingMethod?.leadDaysMin }}–{{ shippingMethod?.leadDaysMax }} days)
           </div>
 
           <div class="mt-2" v-if="termDef && !draft.paidInFull">

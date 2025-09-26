@@ -76,6 +76,30 @@ const scheduleRows = computed(() => {
   })
 })
 
+// Linked Credit Notes
+const creditNotes = computed(() =>
+  (store.creditNotes || []).filter(cn =>
+    cn.originalInvoiceId === invoice.value?.id &&
+    (cn.status === 'issued' || cn.status === 'applied')
+  )
+)
+function cnTotal(cn) {
+  const itemsTotal = (cn.items || []).reduce((acc, it) => {
+    const base = (Number(it.qty)||0) * (Number(it.unitPrice)||0)
+    const dtype = it.discountType || 'none'
+    const dval = Number(it.discountValue)||0
+    const disc = dtype === 'percent' ? base * dval/100 : dtype === 'fixed' ? (Number(it.qty)||0) * dval : 0
+    const net = Math.max(0, base - disc)
+    const tax = (() => {
+      const t = store.taxes.find(x=>x.id===it.taxId)
+      return t ? net * (Number(t.rate)||0)/100 : 0
+    })()
+    return acc + net + tax
+  }, 0)
+  return itemsTotal
+}
+const creditsTotal = computed(() => creditNotes.value.reduce((sum, cn) => sum + cnTotal(cn), 0))
+
 // Print and PDF
 function loadScript(src) {
   return new Promise((resolve, reject) => {
@@ -112,6 +136,105 @@ function printInvoice() {
       </head>
       <body>
         ${html}
+        <script>
+          window.addEventListener('load', function(){
+            setTimeout(function(){
+              try { window.focus(); window.print(); } finally { window.close(); }
+            }, 150);
+          });
+        <\/script>
+      </body>
+    </html>
+  `)
+  w.document.close()
+}
+
+function printReceipt() {
+  const inv = invoice.value
+  if (!inv) return
+  const merch = merchant.value
+  const cust = customer.value
+  const sm = shippingMethod.value
+  const creditAmt = Number((creditsTotal?.value || 0).toFixed(2))
+  const sub = Number(totals.value.sub.toFixed(2))
+  const tax = Number(totals.value.tax.toFixed(2))
+  const ship = Number(totals.value.shipping.toFixed(2))
+  const gross = Number(totals.value.total.toFixed(2))
+  const received = Number(inv.paidInFull ? gross : (Number(inv.receivedAmount||0) - Number(inv.changeAmount||0)))
+  const balance = Math.max(0, gross - creditAmt - received)
+
+  const itemsHtml = (inv.items||[]).map(it => {
+    const name = (store.products.find(p=>p.id===it.productId)?.name || it.description || '—')
+    const qty = Number(it.qty||0)
+    const unit = Number(it.unitPrice||0).toFixed(2)
+    const line = Number((qty * Number(unit)).toFixed(2))
+    const net = Number(lineNet(it).toFixed(2))
+    return `
+      <div class="row">
+        <div class="name">${name}</div>
+        <div class="meta">${qty} x ${unit} = ${net.toFixed(2)}</div>
+      </div>
+    `
+  }).join('')
+
+  const w = window.open('', '_blank', 'noopener,noreferrer')
+  if (!w) return
+  w.document.write(`
+    <html>
+      <head>
+        <meta charset="utf-8"/>
+        <title>Receipt ${inv.number || ''}</title>
+        <style>
+          @page { size: 80mm auto; margin: 0; }
+          html, body { padding:0; margin:0; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+          .receipt { width: 72mm; padding: 4mm 4mm 8mm; }
+          .center { text-align:center; }
+          .muted { color:#555; }
+          .row { margin: 2px 0; }
+          .name { font-size: 12px; }
+          .meta { font-size: 11px; color:#444; display:flex; justify-content: space-between; }
+          .hr { border-top: 1px dashed #000; margin: 6px 0; }
+          .totals .line { display:flex; justify-content: space-between; font-size: 12px; }
+          .totals .grand { font-weight: 700; }
+          .small { font-size: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="receipt">
+          <div class="center">
+            <div style="font-weight:700">${merch?.name || ''}</div>
+            <div class="small muted">${merch?.addresses?.[0] ? (merch.addresses[0].line1 + ', ' + merch.addresses[0].city) : ''}</div>
+            <div class="small">Invoice: ${inv.number || ''}</div>
+            <div class="small">Date: ${inv.date || ''}</div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="small">Customer: ${cust?.name || ''}</div>
+          ${cust?.addresses?.[0] ? `<div class="small muted">${cust.addresses[0].city}</div>` : ''}
+
+          <div class="hr"></div>
+
+          ${itemsHtml || '<div class="small muted">No items</div>'}
+
+          <div class="hr"></div>
+
+          <div class="totals">
+            <div class="line"><span>Subtotal</span><span>${sub.toFixed(2)}</span></div>
+            <div class="line"><span>Tax</span><span>${tax.toFixed(2)}</span></div>
+            ${ship > 0 ? `<div class="line"><span>Shipping</span><span>${ship.toFixed(2)}</span></div>` : ''}
+            <div class="line grand"><span>Total</span><span>${gross.toFixed(2)}</span></div>
+            ${creditAmt > 0 ? `<div class="line"><span>Credits</span><span>-${creditAmt.toFixed(2)}</span></div>` : ''}
+            <div class="line"><span>Received</span><span>${received.toFixed(2)}</span></div>
+            <div class="line"><span>Balance</span><span>${balance.toFixed(2)}</span></div>
+          </div>
+
+          ${sm ? `<div class="small muted" style="margin-top:6px">Shipping via ${sm.name}</div>` : ''}
+
+          <div class="center small" style="margin-top:8px">— Thank you —</div>
+        </div>
+
         <script>
           window.addEventListener('load', function(){
             setTimeout(function(){
@@ -234,6 +357,8 @@ function editInvoice() {
           <div class="btn-group btn-group-sm">
             <button class="btn btn-outline-secondary" @click="editInvoice">Edit</button>
             <button class="btn btn-outline-secondary" @click="printInvoice">Print</button>
+              <button class="btn btn-outline-secondary" @click="printReceipt">Receipt</button>
+            <button class="btn btn-outline-secondary" @click="() => router.push(`/credit-notes/new?invoiceId=${invoice.id}`)">New Credit Note</button>
             <button class="btn btn-primary" @click="downloadPdf">Download PDF</button>
           </div>
         </template>
@@ -254,15 +379,15 @@ function editInvoice() {
             </div>
           </div>
 
-          <div class="mb-2">
-            <div><strong>Bill To</strong></div>
-            <div>{{ customer?.name }}</div>
+          <div class="mb-2 info-block">
+            <div class="text-uppercase muted-label">Bill To</div>
+            <div class="fw-semibold">{{ customer?.name }}</div>
             <div v-if="customerSelectedAddress">{{ customerSelectedAddress.line1 }}, {{ customerSelectedAddress.city }}</div>
             <div v-if="customer?.taxId" class="text-muted small">VAT/TAX ID: {{ customer.taxId }}</div>
             <div v-if="customerSelectedContact" class="text-muted small">{{ customerSelectedContact.name }}<span v-if="customerSelectedContact.email"> · {{ customerSelectedContact.email }}</span><span v-if="customerSelectedContact.phone"> · {{ customerSelectedContact.phone }}</span></div>
           </div>
 
-          <table class="table table-sm align-middle mt-2">
+          <table class="table table-sm table-invoice align-middle mt-2">
             <thead class="table-light">
               <tr>
                 <th>Product / Description</th>
@@ -290,26 +415,32 @@ function editInvoice() {
             </tbody>
           </table>
 
-          <div class="mt-2 text-end">
-            <div>Subtotal: {{ totals.sub.toFixed(2) }}</div>
-            <div>Tax: {{ totals.tax.toFixed(2) }}</div>
-            <div>
-              Shipping:
-              <template v-if="invoice.shippingFree">
-                <span class="text-decoration-line-through">{{ Number(invoice.shippingAmount||0).toFixed(2) }}</span>
-                <span class="ms-1">0.00</span>
-              </template>
-              <template v-else>
-                {{ totals.shipping.toFixed(2) }}
-              </template>
+          <div class="mt-2 d-flex">
+            <div class="flex-grow-1"></div>
+            <div class="totals-card">
+              <div class="line"><span>Subtotal</span><span>{{ totals.sub.toFixed(2) }}</span></div>
+              <div class="line"><span>Tax</span><span>{{ totals.tax.toFixed(2) }}</span></div>
+              <div class="line">
+                <span>Shipping</span>
+                <span>
+                  <template v-if="invoice.shippingFree">
+                    <span class="text-decoration-line-through">{{ Number(invoice.shippingAmount||0).toFixed(2) }}</span>
+                    <span class="ms-1">0.00</span>
+                  </template>
+                  <template v-else>
+                    {{ totals.shipping.toFixed(2) }}
+                  </template>
+                </span>
+              </div>
+              <div class="line grand"><span>Total</span><span>{{ totals.total.toFixed(2) }}</span></div>
+              <div class="line" v-if="creditsTotal > 0"><span>Credits</span><span>-{{ creditsTotal.toFixed(2) }}</span></div>
+              <div class="line" v-if="invoice.paidInFull || Number(invoice.receivedAmount||0) > 0"><span>Received</span><span>{{ Number(invoice.receivedAmount||0).toFixed(2) }}</span></div>
+              <div class="line" v-if="Number(invoice.changeAmount||0) > 0"><span>Change</span><span>{{ Number(invoice.changeAmount||0).toFixed(2) }}</span></div>
+              <div class="line" v-if="invoice.paidInFull || Number(invoice.receivedAmount||0) > 0 || creditsTotal>0"><span class="fw-semibold">Balance Due</span><span class="fw-semibold">{{ Math.max(0, totals.total - creditsTotal - Number(invoice.receivedAmount||0)).toFixed(2) }}</span></div>
+              <div class="muted small mt-1" v-if="shippingMethod">
+                Shipping via {{ shippingMethod?.name }}
+              </div>
             </div>
-            <div><strong>Total: {{ totals.total.toFixed(2) }}</strong></div>
-            <div v-if="invoice.paidInFull || Number(invoice.receivedAmount||0) > 0">Received: {{ Number(invoice.receivedAmount||0).toFixed(2) }}</div>
-            <div v-if="Number(invoice.changeAmount||0) > 0">Change: {{ Number(invoice.changeAmount||0).toFixed(2) }}</div>
-            <div v-if="invoice.paidInFull || Number(invoice.receivedAmount||0) > 0"><strong>Balance Due: {{ Math.max(0, totals.total - Number(invoice.receivedAmount||0)).toFixed(2) }}</strong></div>
-          </div>
-          <div class="text-muted small text-end" v-if="shippingMethod">
-            Shipping via {{ shippingMethod?.name }}
           </div>
 
           <div class="mt-2" v-if="paymentTerm && !invoice.paidInFull && scheduleRows.length">

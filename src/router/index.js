@@ -25,6 +25,11 @@ const Invoices = () => import('../views/Invoices.vue')
 const InvoiceView = () => import('../views/InvoiceView.vue')
 const Settings = () => import('../views/Settings.vue')
 
+// Credit Notes
+const CreditNotesList = () => import('../views/CreditNotesList.vue')
+const CreditNotes = () => import('../views/CreditNotes.vue')
+const CreditNoteView = () => import('../views/CreditNoteView.vue')
+
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -74,6 +79,12 @@ const router = createRouter({
     { path: '/invoices/new', name: 'New Invoice', component: Invoices, meta: { icon: '🧾', hidden: true } },
     { path: '/invoices/:id', name: 'Invoice', component: InvoiceView, meta: { icon: '🧾', hidden: true } },
     { path: '/invoices/:id/edit', name: 'Edit Invoice', component: Invoices, meta: { icon: '🧾', hidden: true } },
+
+    // Credit Notes
+    { path: '/credit-notes', name: 'Credit Notes', component: CreditNotesList, meta: { icon: '↩️' } },
+    { path: '/credit-notes/new', name: 'New Credit Note', component: CreditNotes, meta: { icon: '↩️', hidden: true } },
+    { path: '/credit-notes/:id', name: 'Credit Note', component: CreditNoteView, meta: { icon: '↩️', hidden: true } },
+    { path: '/credit-notes/:id/edit', name: 'Edit Credit Note', component: CreditNotes, meta: { icon: '↩️', hidden: true } },
 
     // Settings
     { path: '/settings', name: 'Settings', component: Settings, meta: { icon: '⚙️' } },

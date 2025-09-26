@@ -584,6 +584,59 @@ const shippingMethods = generateShippingBD()
   }
   const invoicesList = generateInvoices(15)
 
+  // Credit Notes — Bangladesh perspective sample data
+  function generateCreditNotes(count = 8) {
+    const reasons = [
+      'Goods returned (within 7 days)',
+      'Damaged goods (Sundarban transit)',
+      'Pricing adjustment',
+      'Promotional discount',
+      'Service cancellation',
+      'Advance refund'
+    ]
+    const list = []
+    for (let i = 0; i < Math.min(count, invoicesList.length); i++) {
+      const inv = invoicesList[(i * 2) % invoicesList.length]
+      const cust = customersList.find(c => c.id === inv.customerId)
+      const items = []
+      // Choose 1–2 items from invoice with reduced qty
+      const picks = Math.max(1, Math.min(2, inv.items.length))
+      for (let k = 0; k < picks; k++) {
+        const src = inv.items[(i + k) % inv.items.length]
+        const qty = Math.max(1, Math.ceil((Number(src.qty) || 1) / (k === 0 ? 2 : 3)))
+        items.push({
+          id: uid('cnli_'),
+          productId: src.productId,
+          description: src.description,
+          qty,
+          unitPrice: Number(src.unitPrice || 0),
+          discountType: src.discountType || 'none',
+          discountValue: Number(src.discountValue || 0),
+          taxId: src.taxId || ''
+        })
+      }
+      list.push({
+        id: uid('cn_'),
+        number: `CN-${1001 + i}`,
+        date: inv.date,
+        merchantId: inv.merchantId,
+        merchantAddressId: inv.merchantAddressId || '',
+        merchantContactId: inv.merchantContactId || '',
+        customerId: inv.customerId,
+        customerAddressId: inv.customerAddressId || '',
+        customerContactId: inv.customerContactId || '',
+        originalInvoiceId: inv.id,
+        reason: reasons[i % reasons.length],
+        status: i % 3 === 0 ? 'draft' : 'issued',
+        currency: 'BDT',
+        notes: `Auto-generated sample credit note for ${cust?.name || 'customer'} in Bangladesh.`,
+        items
+      })
+    }
+    return list
+  }
+  const creditNotesList = generateCreditNotes(8)
+
   return {
     merchants: merchantsList,
     customers: customersList,
@@ -593,6 +646,7 @@ const shippingMethods = generateShippingBD()
     termsTemplates: termsList,
     shippingMethods,
     invoices: invoicesList,
+    creditNotes: creditNotesList,
     settings: {
       currency: 'BDT',
         dateFormat: 'YYYY-MM-DD',
@@ -605,6 +659,13 @@ const shippingMethods = generateShippingBD()
           defaultPaymentTermId: paymentTermsList[0]?.id || '',
           defaultTermsTemplateId: termsList[0]?.id || '',
           defaultShippingMethodId: shippingMethods[0]?.id || ''
+        },
+        creditNote: {
+          prefix: 'CN-',
+          nextNumber: 1001,
+          zeroPad: 4,
+          autoNumberOnSave: true,
+          footerText: 'Thank you for your business.'
         }
     },
     ui: {
@@ -619,7 +680,60 @@ function load() {
     if (!raw) return createDefaultState()
     const parsed = JSON.parse(raw)
     // Shallow merge to ensure new defaults appear while keeping saved values
-    return { ...createDefaultState(), ...parsed }
+    const merged = { ...createDefaultState(), ...parsed }
+
+    // Migration: link credit notes to invoices if missing originalInvoiceId
+    try {
+      const cnList = merged.creditNotes || []
+      const invList = merged.invoices || []
+      // Build per-customer sorted invoices by date (desc)
+      const byCustomer = new Map()
+      for (const inv of invList) {
+        const key = inv.customerId || '_'
+        if (!byCustomer.has(key)) byCustomer.set(key, [])
+        byCustomer.get(key).push(inv)
+      }
+      for (const arr of byCustomer.values()) {
+        arr.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
+      }
+      function toDateNum(s) {
+        if (!s) return 0
+        const [y, m, d] = String(s).split('-').map(Number)
+        return new Date(y || 0, (m || 1) - 1, d || 1).getTime()
+      }
+      for (const cn of cnList) {
+        if (!cn.originalInvoiceId) {
+          const pool = byCustomer.get(cn.customerId || '_') || []
+          const cnT = toDateNum(cn.date)
+          // Prefer the nearest invoice on or before CN date; else nearest after
+          let best = null
+          let bestDelta = Number.POSITIVE_INFINITY
+          for (const inv of pool) {
+            const invT = toDateNum(inv.date)
+            const delta = cnT >= invT ? (cnT - invT) : (invT - cnT) * 10 // bias toward earlier/equal dates
+            if (delta < bestDelta) {
+              bestDelta = delta
+              best = inv
+            }
+          }
+          if (best) {
+            cn.originalInvoiceId = best.id
+            // also backfill parties if missing
+            cn.merchantId ||= best.merchantId
+            cn.customerId ||= best.customerId
+            cn.merchantAddressId ||= best.merchantAddressId || ''
+            cn.merchantContactId ||= best.merchantContactId || ''
+            cn.customerAddressId ||= best.customerAddressId || ''
+            cn.customerContactId ||= best.customerContactId || ''
+          }
+        }
+      }
+      merged.creditNotes = cnList
+    } catch {
+      // no-op; keep merged as-is on any migration error
+    }
+
+    return merged
   } catch {
     return createDefaultState()
   }

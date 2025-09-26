@@ -28,7 +28,7 @@ function onResetClick() {
     <aside class="border-end bg-light p-3 d-flex flex-column position-sticky top-0 vh-100 overflow-auto flex-shrink-0" style="width: 240px;">
       <div class="d-flex align-items-center mb-3">
         <span class="fs-4 me-2">💼</span>
-        <span class="fw-bold">Invoice</span>
+        <span class="fw-bold">Billing</span>
       </div>
 
       <nav class="nav nav-pills flex-column gap-1">
