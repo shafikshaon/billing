@@ -16,7 +16,10 @@ const draft = reactive({
   paymentTermId: store.paymentTerms[0]?.id || '',
   termsTemplateId: store.termsTemplates[0]?.id || '',
   shippingMethodId: '',
-  shippingFee: 0,
+  shippingAmount: 0,   // editable per invoice
+  shippingCod: false,  // editable per invoice
+  shippingFree: false, // if true => charge 0 but show struck-through amount
+  shippingFee: 0,      // persisted computed fee for list/summary
   notes: '',
   items: []
 })
@@ -73,15 +76,33 @@ const shippingOptions = computed(() => {
   return store.shippingMethods.filter(s => s.region === 'any' || s.region === region)
 })
 const shippingMethod = computed(() => store.shippingMethods.find(s => s.id === draft.shippingMethodId))
-const shippingFee = computed(() => {
-  const method = shippingMethod.value
-  const sub = totalsNoShip.value.sub
+function autoShippingFor(method) {
   if (!method) return 0
+  const sub = totalsNoShip.value.sub
   if (method.freeThreshold && sub >= Number(method.freeThreshold)) return 0
   if (method.chargeType === 'percent') {
     return Number((sub * (Number(method.amount) || 0) / 100).toFixed(2))
   }
   return Number(method.amount) || 0
+}
+const shippingFee = computed(() => {
+  const method = shippingMethod.value
+  if (!method) return 0
+  const base = Number(draft.shippingAmount ?? 0)
+  return draft.shippingFree ? 0 : base
+})
+// Initialize shipping values when method changes
+watch(() => draft.shippingMethodId, () => {
+  const m = shippingMethod.value
+  if (m) {
+    draft.shippingAmount = autoShippingFor(m)
+    draft.shippingCod = !!m.codAvailable
+    draft.shippingFree = false
+  } else {
+    draft.shippingAmount = 0
+    draft.shippingCod = false
+    draft.shippingFree = false
+  }
 })
 // sub/tax without shipping to avoid circular dependency
 const totalsNoShip = computed(() => {
@@ -166,6 +187,7 @@ function save() {
   if (!draft.merchantId || !draft.customerId) return
   if (!draft.number) autoNumber()
   if (!draft.id) draft.id = uid('inv_')
+  // compute and persist fee based on editable amount / free flag
   draft.shippingFee = shippingFee.value
   const copy = JSON.parse(JSON.stringify(draft))
   const idx = store.invoices.findIndex(x=>x.id===copy.id)
@@ -184,17 +206,26 @@ function printInvoice() {
         <title>${draft.number || 'Invoice'}</title>
         <link rel="stylesheet" href="https://bootswatch.com/5/pulse/bootstrap.min.css"/>
         <style>
-          body{ padding:24px; background:#fff; }
-          .print-area{ border:none; padding:0; }
-          *{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          @page { size: A4; margin: 10mm; }
+          body { background:#fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; }
+          .print-area { width: 190mm; margin: 0 auto; padding: 10mm; border: none; }
+          .print-area h4 { font-size: 20px; color: #4a148c; }
+          .print-area table { font-size: 12px; }
         </style>
       </head>
-      <body>${html}</body>
+      <body>
+        ${html}
+        <script>
+          window.addEventListener('load', function(){
+            setTimeout(function(){
+              try { window.focus(); window.print(); } finally { window.close(); }
+            }, 150);
+          });
+        <\/script>
+      </body>
     </html>
   `)
   w.document.close()
-  w.focus()
-  w.onload = () => { w.print(); w.close() }
 }
 
 // Lazy-load helpers for PDF download
@@ -218,45 +249,133 @@ async function ensurePdfLibs() {
 }
 async function downloadPdf() {
   if (!printRef?.value) return
-  const { jsPDF } = await ensurePdfLibs()
 
-  // Temporarily apply a "pdf-mode" class to optimize layout for A4
-  const el = printRef.value
-  el.classList.add('pdf-mode')
+  // Load pdfmake (text-based PDFs = selectable/copyable)
+  async function ensurePdfMake() {
+    if (!window.pdfMake) {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script')
+        s.src = 'https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/pdfmake.min.js'
+        s.onload = res; s.onerror = rej; document.body.appendChild(s)
+      })
+      await new Promise((res, rej) => {
+        const s = document.createElement('script')
+        s.src = 'https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/vfs_fonts.min.js'
+        s.onload = res; s.onerror = rej; document.body.appendChild(s)
+      })
+    }
+    return window.pdfMake
+  }
+  await ensurePdfMake()
 
-  // Render at higher scale for crisp text
-  const canvas = await window.html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
-  const imgData = canvas.toDataURL('image/png')
+  // Build content
+  const merch = merchant.value
+  const cust = customer.value
+  const scheduleRows = paymentSchedule.value.map(r => [r.label, r.date, { text: r.amount.toFixed(2), alignment: 'right' }])
 
-  // Fit exactly one A4 page with margins
-  const pdf = new jsPDF('p', 'mm', 'a4')
-  const pageWidth = 210
-  const pageHeight = 297
-  const margin = 10
-  const maxW = pageWidth - margin * 2
-  const maxH = pageHeight - margin * 2
+  const body = [
+    [{ text: 'Product / Description', bold: true }, { text: 'Qty', alignment: 'right', bold: true }, { text: 'Unit', alignment: 'right', bold: true }, { text: 'Discount', alignment: 'right', bold: true }, { text: 'Line', alignment: 'right', bold: true }],
+    ...draft.items.map(it => {
+      const disc = (it.discountType||'none') === 'percent'
+        ? `-${Number(it.discountValue||0).toFixed(0)}%`
+        : (it.discountType||'none') === 'fixed'
+          ? `- ${(Number(it.discountValue||0)*Number(it.qty||0)).toFixed(2)}`
+          : '—'
+      return [
+        productById(it.productId)?.name || it.description || '—',
+        { text: String(it.qty || 0), alignment: 'right' },
+        { text: (Number(it.unitPrice||0)).toFixed(2), alignment: 'right' },
+        { text: disc, alignment: 'right' },
+        { text: lineNet(it).toFixed(2), alignment: 'right' }
+      ]
+    })
+  ]
 
-  // Calculate fit scale for single page
-  const imgW = canvas.width
-  const imgH = canvas.height
-  const ratioW = maxW / (imgW / 96 * 25.4) // px to mm (96 dpi -> 25.4mm per inch)
-  const ratioH = maxH / (imgH / 96 * 25.4)
-  const ratio = Math.min(ratioW, ratioH)
+  const docDefinition = {
+    pageSize: 'A4',
+    pageMargins: [28, 28, 28, 28], // ~10mm
+    content: [
+      {
+        columns: [
+          [
+            { text: 'Invoice', style: 'title' },
+            { text: `No: ${draft.number || '(not set)'}` },
+            { text: `Date: ${draft.date}` },
+            { text: `Due: ${draft.dueDate}` }
+          ],
+          [
+            { text: merch?.name || 'Select Merchant', alignment: 'right', bold: true },
+            { text: merch?.addresses?.length ? `${merch.addresses[0].line1}, ${merch.addresses[0].city}` : '', alignment: 'right' }
+          ]
+        ]
+      },
+      { text: ' ', margin: [0,6] },
+      { text: 'Bill To', bold: true },
+      { text: cust?.name || 'Select Customer' },
+      { text: cust?.addresses?.length ? `${cust.addresses[0].line1}, ${cust.addresses[0].city}` : '' },
+      { text: ' ', margin: [0,6] },
+      {
+        table: {
+          headerRows: 1,
+          widths: ['*', 40, 50, 55, 60],
+          body
+        },
+        layout: 'lightHorizontalLines'
+      },
+      {
+        columns: [
+          { text: ' ' },
+          {
+            width: 200,
+            alignment: 'right',
+            stack: [
+              { text: `Subtotal: ${totals.value.sub.toFixed(2)}` },
+              { text: `Tax: ${totals.value.tax.toFixed(2)}` },
+              draft.shippingFree
+                ? { text: [
+                    'Shipping: 0.00 ',
+                    { text: `(was ${Number(draft.shippingAmount||0).toFixed(2)})`, decoration: 'lineThrough' }
+                  ] }
+                : { text: `Shipping: ${(totals.value.shipping||0).toFixed(2)}` },
+              { text: `Total: ${totals.value.total.toFixed(2)}`, bold: true }
+            ]
+          }
+        ],
+        margin: [0, 8, 0, 0]
+      },
+      ...(scheduleRows.length ? [
+        { text: `Payment Schedule — ${termDef.value?.name || ''}`, bold: true, margin: [0,8,0,4] },
+        {
+          table: {
+            headerRows: 1,
+            widths: ['*', 80, 80],
+            body: [
+              [{ text: 'Installment', bold: true }, { text: 'Date', bold: true }, { text: 'Amount', alignment: 'right', bold: true }],
+              ...scheduleRows
+            ]
+          },
+          layout: 'lightHorizontalLines'
+        }
+      ] : [])
+    ],
+    footer: (currentPage, pageCount) => ({
+      margin: [28, 8, 28, 16],
+      fontSize: 9,
+      text: (store.termsTemplates.find(t => t.id === draft.termsTemplateId)?.content || '').trim()
+    }),
+    styles: {
+      title: { fontSize: 18, color: '#4a148c', bold: true }
+    },
+    defaultStyle: { fontSize: 10 }
+  }
 
-  const finalW = maxW // fill width box
-  const finalH = Math.min(maxH, (imgH / imgW) * finalW)
-
-  pdf.addImage(imgData, 'PNG', margin, margin, finalW, finalH, '', 'FAST')
-  el.classList.remove('pdf-mode')
-
-  const filename = `invoice_${draft.number || 'draft'}.pdf`
-  pdf.save(filename)
+  window.pdfMake.createPdf(docDefinition).download(`invoice_${draft.number || 'draft'}.pdf`)
 }
 </script>
 
 <template>
   <div class="row g-3">
-    <div class="col-lg-7">
+    <div class="col-lg-6">
       <SectionCard title="Create Invoice">
         <div class="row g-3">
           <div class="col-md-4">
@@ -313,8 +432,27 @@ async function downloadPdf() {
                 {{ s.name }} — {{ s.chargeType==='fixed' ? ('৳'+Number(s.amount).toFixed(0)) : (Number(s.amount)+'%') }}
               </option>
             </select>
-            <div class="form-text" v-if="shippingMethod">
-              Estimated {{ shippingMethod?.leadDaysMin }}–{{ shippingMethod?.leadDaysMax }} days. COD: {{ shippingMethod?.codAvailable ? 'Yes' : 'No' }}.
+            <div v-if="shippingMethod" class="mt-2">
+              <div class="row g-2">
+                <div class="col-6">
+                  <label class="form-label">Amount (৳)</label>
+                  <input class="form-control form-control-sm text-end" type="number" min="0" step="0.01" v-model.number="draft.shippingAmount" />
+                  <div class="form-text">Auto: {{ autoShippingFor(shippingMethod).toFixed(2) }}</div>
+                </div>
+                <div class="col-6 d-flex align-items-end gap-3">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="codSwitch" v-model="draft.shippingCod">
+                    <label class="form-check-label" for="codSwitch">COD</label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="freeShip" v-model="draft.shippingFree">
+                    <label class="form-check-label" for="freeShip">Shipping free</label>
+                  </div>
+                </div>
+              </div>
+              <div class="form-text">
+                Estimated {{ shippingMethod?.leadDaysMin }}–{{ shippingMethod?.leadDaysMax }} days. Provider COD default: {{ shippingMethod?.codAvailable ? 'Yes' : 'No' }}.
+              </div>
             </div>
           </div>
 
@@ -334,22 +472,29 @@ async function downloadPdf() {
           </div>
         </div>
 
-        <div class="d-flex align-items-center gap-2 mt-2">
+        <!-- Totals badges -->
+        <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
           <span class="badge text-bg-light border">Subtotal: {{ totals.sub.toFixed(2) }}</span>
           <span class="badge text-bg-light border">Tax: {{ totals.tax.toFixed(2) }}</span>
           <span class="badge text-bg-light border">Shipping: {{ (totals.shipping||0).toFixed(2) }}</span>
           <span class="badge text-bg-light border">Total: {{ totals.total.toFixed(2) }}</span>
-          <div class="ms-auto d-flex gap-2">
-            <button class="btn btn-outline-secondary" type="button" @click="reset">Reset</button>
-            <button class="btn btn-success" type="button" @click="save">Save</button>
-            <button class="btn btn-primary" type="button" @click="downloadPdf">Download PDF</button>
-            <button class="btn btn-outline-secondary" type="button" @click="printInvoice">Print</button>
-          </div>
+        </div>
+
+        <!-- Centered primary actions -->
+        <div class="d-flex justify-content-center gap-3 mt-3">
+          <button class="btn btn-outline-secondary px-4" type="button" @click="reset">Reset</button>
+          <button class="btn btn-success px-4" type="button" @click="save">Save</button>
+        </div>
+
+        <!-- Secondary actions (centered) -->
+        <div class="d-flex justify-content-center gap-3 mt-2">
+          <button class="btn btn-primary px-4" type="button" @click="downloadPdf">Download PDF</button>
+          <button class="btn btn-outline-secondary px-4" type="button" @click="printInvoice">Print</button>
         </div>
       </SectionCard>
     </div>
 
-    <div class="col-lg-5">
+    <div class="col-lg-6">
       <SectionCard title="Preview">
         <div class="print-area" ref="printRef">
           <div class="d-flex justify-content-between mb-3">
@@ -402,13 +547,22 @@ async function downloadPdf() {
             </tbody>
           </table>
 
-          <div class="d-flex justify-content-end gap-3 mt-2">
+          <div class="mt-2 text-end">
             <div>Subtotal: {{ totals.sub.toFixed(2) }}</div>
             <div>Tax: {{ totals.tax.toFixed(2) }}</div>
-            <div>Shipping: {{ (totals.shipping||0).toFixed(2) }}</div>
+            <div>
+              Shipping:
+              <template v-if="draft.shippingFree">
+                <span class="text-decoration-line-through">{{ Number(draft.shippingAmount||0).toFixed(2) }}</span>
+                <span class="ms-1">0.00</span>
+              </template>
+              <template v-else>
+                {{ (totals.shipping||0).toFixed(2) }}
+              </template>
+            </div>
             <div><strong>Total: {{ totals.total.toFixed(2) }}</strong></div>
           </div>
-          <div class="text-muted small" v-if="shippingMethod">
+          <div class="text-muted small text-end" v-if="shippingMethod">
             Shipping via {{ shippingMethod?.name }} ({{ shippingMethod?.leadDaysMin }}–{{ shippingMethod?.leadDaysMax }} days)
           </div>
 
@@ -436,38 +590,6 @@ async function downloadPdf() {
             <div style="white-space:pre-wrap;">{{ draft.notes }}</div>
           </div>
         </div>
-      </SectionCard>
-
-      <SectionCard title="Saved Invoices">
-        <table class="table table-sm align-middle">
-          <thead class="table-light"><tr><th>No</th><th>Customer</th><th>Total</th><th></th></tr></thead>
-          <tbody>
-            <tr v-for="inv in store.invoices" :key="inv.id">
-              <td>{{ inv.number }}</td>
-              <td>{{ store.customers.find(c=>c.id===inv.customerId)?.name }}</td>
-              <td>
-                {{
-                  (inv.items.reduce((acc,it)=>{
-                    const base=(Number(it.qty)||0)*(Number(it.unitPrice)||0)
-                    const dtype=it.discountType||'none'
-                    const dval=Number(it.discountValue)||0
-                    const disc = dtype==='percent' ? base*dval/100 : dtype==='fixed' ? (Number(it.qty)||0)*dval : 0
-                    const net = Math.max(0, base - disc)
-                    const tax=(() => {
-                      const t=store.taxes.find(x=>x.id===it.taxId)
-                      return t? net*(Number(t.rate)||0)/100 : 0
-                    })()
-                    return acc+net+tax
-                  },0) + Number(inv.shippingFee||0)).toFixed(2)
-                }}
-              </td>
-              <td class="text-end">
-                <button class="btn btn-sm btn-outline-secondary" @click="Object.assign(draft, JSON.parse(JSON.stringify(inv)))">Open</button>
-              </td>
-            </tr>
-            <tr v-if="store.invoices.length===0"><td colspan="4" class="text-muted">No invoices yet.</td></tr>
-          </tbody>
-        </table>
       </SectionCard>
     </div>
   </div>

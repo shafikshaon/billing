@@ -22,6 +22,7 @@ const ShippingMethodsList = () => import('../views/ShippingMethodsList.vue')
 const ShippingMethodForm = () => import('../views/ShippingMethodForm.vue')
 const InvoicesList = () => import('../views/InvoicesList.vue')
 const Invoices = () => import('../views/Invoices.vue')
+const InvoiceView = () => import('../views/InvoiceView.vue')
 
 const router = createRouter({
   history: createWebHistory(),
@@ -70,6 +71,7 @@ const router = createRouter({
     // Invoices
     { path: '/invoices', name: 'Invoices', component: InvoicesList, meta: { icon: '🧾' } },
     { path: '/invoices/new', name: 'New Invoice', component: Invoices, meta: { icon: '🧾', hidden: true } },
+    { path: '/invoices/:id', name: 'Invoice', component: InvoiceView, meta: { icon: '🧾', hidden: true } },
     { path: '/invoices/:id/edit', name: 'Edit Invoice', component: Invoices, meta: { icon: '🧾', hidden: true } },
   ],
 })

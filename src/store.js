@@ -497,29 +497,92 @@ const shippingMethods = generateShippingBD()
   }
   const productsList = generateBdProducts(100)
 
-  // Invoices (sample draft)
-  const inv1Id = uid('inv_')
-  const p1 = productsList[0]
-  const p2 = productsList[1]
-  const line1 = { id: uid('li_'), productId: p1?.id, description: p1?.name || 'Service A', qty: 2, unitPrice: p1?.price || 100, taxId: p1?.taxId || '' }
-  const line2 = { id: uid('li_'), productId: p2?.id, description: p2?.name || 'Item B', qty: 5, unitPrice: p2?.price || 50, taxId: p2?.taxId || '' }
-  const net15Id = paymentTermsList.find(x => x.name.toLowerCase().includes('net 15'))?.id || paymentTermsList[0]?.id
-
-  const inv1 = {
-    id: inv1Id,
-    number: 'INV-1001',
-    date: new Date().toISOString().slice(0, 10),
-    merchantId: merchantsList[0]?.id,
-    customerId: customersList[0]?.id,
-    paymentTermId: net15Id,
-    dueDate: null, // computed in UI from paymentTermId
-    status: 'draft', // draft | sent | paid | void
-    currency: 'BDT',
-    items: [line1, line2],
-    notes: 'Thank you for your business!',
-    termsTemplateId: termsList[0]?.id,
-    attachments: []
+  // Invoices (sample set)
+  function subTaxFromItems(items) {
+    let sub = 0, tax = 0
+    for (const it of items) {
+      const base = (Number(it.qty)||0) * (Number(it.unitPrice)||0)
+      const dtype = it.discountType || 'none'
+      const dval = Number(it.discountValue) || 0
+      const disc = dtype === 'percent' ? base * dval/100 : dtype === 'fixed' ? (Number(it.qty)||0) * dval : 0
+      const net = Math.max(0, base - disc)
+      sub += net
+      const t = taxesList.find(x => x.id === it.taxId)
+      if (t) tax += net * (Number(t.rate) || 0) / 100
+    }
+    return { sub, tax, total: sub + tax }
   }
+  function regionOf(customer) {
+    const city = (customer?.addresses?.[0]?.city || '').toLowerCase()
+    return city.includes('dhaka') ? 'inside_dhaka' : 'outside_dhaka'
+  }
+  function shippingFeeFor(subTotal, method) {
+    if (!method) return 0
+    if (method.freeThreshold && subTotal >= Number(method.freeThreshold)) return 0
+    return method.chargeType === 'percent'
+      ? Number((subTotal * (Number(method.amount)||0) / 100).toFixed(2))
+      : Number(method.amount)||0
+  }
+  function addDaysStr(dateStr, days) {
+    const [y,m,d] = dateStr.split('-').map(Number)
+    const dt = new Date(y, m-1, d)
+    dt.setDate(dt.getDate() + (Number(days)||0))
+    const yy=dt.getFullYear(), mm=String(dt.getMonth()+1).padStart(2,'0'), dd=String(dt.getDate()).padStart(2,'0')
+    return `${yy}-${mm}-${dd}`
+  }
+  function generateInvoices(count = 15) {
+    const list = []
+    const baseDate = new Date().toISOString().slice(0,10)
+    for (let i=0; i<count; i++) {
+      const m = merchantsList[i % merchantsList.length]
+      const c = customersList[(i*3) % customersList.length]
+      const term = paymentTermsList[(i*5) % paymentTermsList.length]
+      const termsTpl = termsList[(i*2) % termsList.length]
+      const nItems = 2 + Math.floor(Math.random()*3) // 2–4 items
+      const items = []
+      for (let k=0; k<nItems; k++) {
+        const p = productsList[(i*11 + k) % productsList.length]
+        items.push({
+          id: uid('li_'),
+          productId: p.id,
+          description: p.name,
+          qty: 1 + Math.floor(Math.random()*5),
+          unitPrice: Number((p.price||0).toFixed(2)),
+          discountType: p.discountType || 'none',
+          discountValue: Number(p.discountValue||0),
+          taxId: p.taxId || ''
+        })
+      }
+      const totals = subTaxFromItems(items)
+      const region = regionOf(c)
+      const opts = shippingMethods.filter(s => s.region==='any' || s.region===region)
+      const shipMethod = opts[(i*7) % opts.length]
+      const shipFee = shippingFeeFor(totals.sub, shipMethod)
+
+      const number = `INV-${(1001+i).toString()}`
+      const date = addDaysStr(baseDate, -Math.floor(Math.random()*28))
+
+      list.push({
+        id: uid('inv_'),
+        number,
+        date,
+        dueDate: null, // UI computes from paymentTermId
+        merchantId: m.id,
+        customerId: c.id,
+        paymentTermId: term.id,
+        status: 'draft',
+        currency: 'BDT',
+        items,
+        notes: 'Auto-generated sample invoice.',
+        termsTemplateId: termsTpl.id,
+        shippingMethodId: shipMethod?.id || '',
+        shippingFee: shipFee,
+        attachments: []
+      })
+    }
+    return list
+  }
+  const invoicesList = generateInvoices(15)
 
   return {
     merchants: merchantsList,
@@ -529,10 +592,13 @@ const shippingMethods = generateShippingBD()
     paymentTerms: paymentTermsList,
     termsTemplates: termsList,
     shippingMethods,
-    invoices: [inv1],
+    invoices: invoicesList,
     settings: {
       currency: 'BDT',
       dateFormat: 'YYYY-MM-DD'
+    },
+    ui: {
+      sidebarCollapsed: false
     }
   }
 }

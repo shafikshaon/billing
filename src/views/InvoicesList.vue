@@ -47,6 +47,7 @@ const pageItems = computed(() => {
 })
 
 function createNew(){ router.push('/invoices/new') }
+function viewRow(i){ router.push(`/invoices/${i.id}`) }
 function edit(i){ router.push(`/invoices/${i.id}/edit`) }
 </script>
 
@@ -84,7 +85,8 @@ function edit(i){ router.push(`/invoices/${i.id}/edit`) }
               <td class="text-end">{{ invTotal(inv).toFixed(2) }}</td>
               <td class="text-end">
                 <div class="btn-group btn-group-sm">
-                  <button class="btn btn-outline-secondary" @click="edit(inv)">Open</button>
+                  <button class="btn btn-outline-secondary" @click="viewRow(inv)">View</button>
+                  <button class="btn btn-outline-secondary" @click="edit(inv)">Edit</button>
                 </div>
               </td>
             </tr>

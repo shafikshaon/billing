@@ -52,7 +52,7 @@ textarea.form-control:focus {
   box-shadow: 0 0 0 .2rem var(--purple-weak) !important;
 }
 
-/* Print-friendly invoice paper */
+/* Invoice preview (screen) */
 .print-area {
   background: #fff;
   color: #222;
@@ -64,14 +64,49 @@ textarea.form-control:focus {
 .print-area table { font-size: 12px; }
 .print-area .totals { font-weight: 600; }
 
+/* A4-friendly sizes when exporting or printing */
 .print-area.pdf-mode {
-  /* tighter fonts for A4 fit when exporting */
-  font-size: 11px;
-  padding: 16px;
+  width: 190mm;           /* A4 width minus 10mm margins each side */
+  margin: 0 auto;
+  padding: 10mm;
+  font-size: 12px;
+  border-radius: 0;
+  border: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  min-height: 277mm;      /* A4 height minus 2x10mm margins */
+}
+.print-area.pdf-mode h4 { font-size: 20px; }
+.print-area.pdf-mode table { font-size: 12px; }
+
+/* Push terms to the bottom for print/pdf */
+.print-area .invoice-terms { margin-top: 12px; }
+.print-area.pdf-mode .invoice-terms { margin-top: auto; }
+
+/* Improve table spacing and borders */
+.print-area table.table > :not(caption) > * > * {
+  padding: 6px 8px;
+}
+.print-area table.table thead th {
+  border-bottom: 1px solid #ddd;
+}
+.print-area table.table tbody td {
+  border-bottom: 1px solid #f0f0f0;
 }
 
 @media print {
   body, #app { background: white; color: black; }
   .no-print { display: none !important; }
-  .print-area { border: none; padding: 0; }
+  .print-area {
+    width: 190mm;
+    margin: 0 auto;
+    padding: 10mm !important;
+    border: none;
+    border-radius: 0;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    min-height: 277mm;
+  }
+  .print-area .invoice-terms { margin-top: auto; }
 }
