@@ -90,6 +90,157 @@ function printCN() {
   w.document.close()
 }
 
+function printReceipt() {
+  const cn = creditNote.value
+  if (!cn) return
+  const merch = merchant.value
+  const cust = customer.value
+
+  const sub = Number(totals.value.sub.toFixed(2))
+  const tax = Number(totals.value.tax.toFixed(2))
+  const grand = Number(totals.value.total.toFixed(2))
+
+  // Compute overall discount from items
+  const discount = (cn.items || []).reduce((acc, it) => {
+    const base = (Number(it.qty) || 0) * (Number(it.unitPrice) || 0)
+    const net = lineNet(it)
+    return acc + Math.max(0, base - net)
+  }, 0)
+
+  // Amount in words (simple English)
+  function toWords(num) {
+    const a = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen']
+    const b = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety']
+    function n2w(n) {
+      if (n < 20) return a[n]
+      if (n < 100) return b[Math.floor(n / 10)] + (n % 10 ? ' ' + a[n % 10] : '')
+      if (n < 1000) return a[Math.floor(n / 100)] + ' hundred' + (n % 100 ? ' ' + n2w(n % 100) : '')
+      if (n < 1_000_000) return n2w(Math.floor(n / 1000)) + ' thousand' + (n % 1000 ? ' ' + n2w(n % 1000) : '')
+      if (n < 1_000_000_000) return n2w(Math.floor(n / 1_000_000)) + ' million' + (n % 1_000_000 ? ' ' + n2w(n % 1_000_000) : '')
+      return String(n)
+    }
+    const i = Math.floor(num)
+    const d = Math.round((num - i) * 100)
+    let s = i === 0 ? 'zero' : n2w(i)
+    if (d) s += ` and ${d}/100`
+    return s.charAt(0).toUpperCase() + s.slice(1)
+  }
+  const amountInWords = toWords(grand) + ' only'
+
+  const itemsRows = (cn.items || []).map((it, idx) => {
+    const name = (store.products.find(p => p.id === it.productId)?.name || it.description || '—')
+    const qty = Number(it.qty || 0)
+    const rate = Number(it.unitPrice || 0).toFixed(2)
+    const net = Number(lineNet(it) || 0).toFixed(2)
+    const discTxt = (it.discountType || 'none') === 'percent'
+      ? ` · -${Number(it.discountValue || 0).toFixed(0)}%`
+      : (it.discountType || 'none') === 'fixed'
+        ? ` · -${(Number(it.discountValue || 0) * Number(it.qty || 0)).toFixed(2)}`
+        : ''
+    return `
+      <tr>
+        <td class="sl">${String(idx + 1).padStart(2,'0')}</td>
+        <td class="desc">
+          <div class="nm">${name}</div>
+          <div class="muted small">${qty} x ${rate}${discTxt}</div>
+        </td>
+        <td class="amt">${net}</td>
+      </tr>
+    `
+  }).join('')
+
+  const w = window.open('', '_blank', 'noopener,noreferrer')
+  if (!w) return
+  w.document.write(`
+    <html>
+      <head>
+        <meta charset="utf-8"/>
+        <title>Credit Note ${cn.number || ''}</title>
+        <style>
+          @page { size: 80mm auto; margin: 0; }
+          * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          html, body { margin: 0; padding: 0; background: #fff; }
+          body { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+          .rcpt { width: 80mm; padding: 4mm 3mm 8mm; box-sizing: border-box; color: #000; font-size: 12px; }
+          .center { text-align: center; }
+          .title { font-weight: 700; letter-spacing: .5px; }
+          .muted { color: #444; }
+          .small { font-size: 11px; }
+          hr { border: 0; border-top: 1px dashed #000; margin: 6px 0; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { padding: 2px 0; }
+          th { text-align: left; font-weight: 700; }
+          .items .sl { width: 18px; }
+          .items .desc .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 52mm; }
+          .items .amt { text-align: right; white-space: nowrap; }
+          .totals .line { display: flex; justify-content: space-between; }
+          .totals .grand { font-weight: 700; }
+          @media print { .no-print { display: none !important; } }
+        </style>
+      </head>
+      <body>
+        <div class="rcpt">
+          <div class="center">
+            <div class="title">${merch?.name || ''}</div>
+            ${merch?.addresses?.[0] ? `<div class="small muted">${merch.addresses[0].line1}, ${merch.addresses[0].city}</div>` : ''}
+            ${merch?.taxId ? `<div class="small muted">VAT/TAX: ${merch.taxId}</div>` : ''}
+          </div>
+
+          <hr />
+          <div class="center title">CREDIT NOTE</div>
+          <div class="line small" style="display:flex;justify-content:space-between;"><span>No:</span><span>${cn.number || ''}</span></div>
+          <div class="line small" style="display:flex;justify-content:space-between;"><span>Date:</span><span>${cn.date || ''}</span></div>
+          ${refInvoice.value ? `<div class="line small" style="display:flex;justify-content:space-between;"><span>Ref Inv:</span><span>${refInvoice.value.number}</span></div>` : ''}
+          ${cust?.name ? `<div class="line small" style="display:flex;justify-content:space-between;"><span>Customer:</span><span>${cust.name}</span></div>` : ''}
+          ${cn.reason ? `<div class="small muted">Reason: ${cn.reason}</div>` : ''}
+
+          <hr />
+
+          <table class="items">
+            <thead>
+              <tr>
+                <th class="sl">SL</th>
+                <th>Item Description</th>
+                <th class="amt">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsRows || `<tr><td colspan="3" class="small muted">No items</td></tr>`}
+            </tbody>
+          </table>
+
+          <hr />
+
+          <div class="totals">
+            <div class="line"><span>Subtotal</span><span>${sub.toFixed(2)}</span></div>
+            ${discount > 0 ? `<div class="line"><span>Discount</span><span>-${discount.toFixed(2)}</span></div>` : ''}
+            <div class="line"><span>VAT</span><span>${tax.toFixed(2)}</span></div>
+            <div class="line grand"><span>Total Credit</span><span>${grand.toFixed(2)}</span></div>
+          </div>
+
+          <hr />
+
+          <div class="small"><strong>In words:</strong> ${amountInWords}</div>
+
+          <hr />
+
+          ${store.settings?.creditNote?.footerText ? `<div class="center small muted">${store.settings.creditNote.footerText}</div>` : ''}
+          <div class="center small" style="margin-top:6px">Thank you!</div>
+        </div>
+
+        <script>
+          window.addEventListener('load', function(){
+            setTimeout(function(){
+              try { window.focus(); window.print(); } finally { window.close(); }
+            }, 120);
+          });
+        <\/script>
+      </body>
+    </html>
+  `)
+  w.document.close()
+}
+
 async function downloadPdf() {
   if (!printRef?.value || !creditNote.value) return
 
@@ -184,6 +335,7 @@ async function downloadPdf() {
           <div class="btn-group btn-group-sm">
             <button class="btn btn-outline-secondary" @click="editCN">Edit</button>
             <button class="btn btn-outline-secondary" @click="printCN">Print</button>
+            <button class="btn btn-outline-secondary" @click="printReceipt">Receipt</button>
             <button class="btn btn-primary" @click="downloadPdf">Download PDF</button>
           </div>
         </template>

@@ -150,102 +150,18 @@ function printInvoice() {
 }
 
 function printReceipt() {
-  const inv = invoice.value
-  if (!inv) return
-  const merch = merchant.value
-  const cust = customer.value
-  const sm = shippingMethod.value
-  const creditAmt = Number((creditsTotal?.value || 0).toFixed(2))
-  const sub = Number(totals.value.sub.toFixed(2))
-  const tax = Number(totals.value.tax.toFixed(2))
-  const ship = Number(totals.value.shipping.toFixed(2))
-  const gross = Number(totals.value.total.toFixed(2))
-  const received = Number(inv.paidInFull ? gross : (Number(inv.receivedAmount||0) - Number(inv.changeAmount||0)))
-  const balance = Math.max(0, gross - creditAmt - received)
+  // Show only POS receipt markup and invoke browser print dialog
+  document.body.classList.add('pos-print')
+  const cleanup = () => document.body.classList.remove('pos-print')
 
-  const itemsHtml = (inv.items||[]).map(it => {
-    const name = (store.products.find(p=>p.id===it.productId)?.name || it.description || '—')
-    const qty = Number(it.qty||0)
-    const unit = Number(it.unitPrice||0).toFixed(2)
-    const line = Number((qty * Number(unit)).toFixed(2))
-    const net = Number(lineNet(it).toFixed(2))
-    return `
-      <div class="row">
-        <div class="name">${name}</div>
-        <div class="meta">${qty} x ${unit} = ${net.toFixed(2)}</div>
-      </div>
-    `
-  }).join('')
-
-  const w = window.open('', '_blank', 'noopener,noreferrer')
-  if (!w) return
-  w.document.write(`
-    <html>
-      <head>
-        <meta charset="utf-8"/>
-        <title>Receipt ${inv.number || ''}</title>
-        <style>
-          @page { size: 80mm auto; margin: 0; }
-          html, body { padding:0; margin:0; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-          .receipt { width: 72mm; padding: 4mm 4mm 8mm; }
-          .center { text-align:center; }
-          .muted { color:#555; }
-          .row { margin: 2px 0; }
-          .name { font-size: 12px; }
-          .meta { font-size: 11px; color:#444; display:flex; justify-content: space-between; }
-          .hr { border-top: 1px dashed #000; margin: 6px 0; }
-          .totals .line { display:flex; justify-content: space-between; font-size: 12px; }
-          .totals .grand { font-weight: 700; }
-          .small { font-size: 10px; }
-        </style>
-      </head>
-      <body>
-        <div class="receipt">
-          <div class="center">
-            <div style="font-weight:700">${merch?.name || ''}</div>
-            <div class="small muted">${merch?.addresses?.[0] ? (merch.addresses[0].line1 + ', ' + merch.addresses[0].city) : ''}</div>
-            <div class="small">Invoice: ${inv.number || ''}</div>
-            <div class="small">Date: ${inv.date || ''}</div>
-          </div>
-
-          <div class="hr"></div>
-
-          <div class="small">Customer: ${cust?.name || ''}</div>
-          ${cust?.addresses?.[0] ? `<div class="small muted">${cust.addresses[0].city}</div>` : ''}
-
-          <div class="hr"></div>
-
-          ${itemsHtml || '<div class="small muted">No items</div>'}
-
-          <div class="hr"></div>
-
-          <div class="totals">
-            <div class="line"><span>Subtotal</span><span>${sub.toFixed(2)}</span></div>
-            <div class="line"><span>Tax</span><span>${tax.toFixed(2)}</span></div>
-            ${ship > 0 ? `<div class="line"><span>Shipping</span><span>${ship.toFixed(2)}</span></div>` : ''}
-            <div class="line grand"><span>Total</span><span>${gross.toFixed(2)}</span></div>
-            ${creditAmt > 0 ? `<div class="line"><span>Credits</span><span>-${creditAmt.toFixed(2)}</span></div>` : ''}
-            <div class="line"><span>Received</span><span>${received.toFixed(2)}</span></div>
-            <div class="line"><span>Balance</span><span>${balance.toFixed(2)}</span></div>
-          </div>
-
-          ${sm ? `<div class="small muted" style="margin-top:6px">Shipping via ${sm.name}</div>` : ''}
-
-          <div class="center small" style="margin-top:8px">— Thank you —</div>
-        </div>
-
-        <script>
-          window.addEventListener('load', function(){
-            setTimeout(function(){
-              try { window.focus(); window.print(); } finally { window.close(); }
-            }, 150);
-          });
-        <\/script>
-      </body>
-    </html>
-  `)
-  w.document.close()
+  // Ensure cleanup even if user cancels print or browser doesn't fire afterprint
+  window.addEventListener('afterprint', cleanup, { once: true })
+  setTimeout(() => {
+    try { window.print() } finally {
+      // Fallback cleanup in case afterprint doesn't trigger (Safari etc.)
+      setTimeout(cleanup, 1200)
+    }
+  }, 50)
 }
 
 async function downloadPdf() {
@@ -470,8 +386,108 @@ function editInvoice() {
             <div style="white-space:pre-wrap;">{{ invoice.notes }}</div>
           </div>
         </div>
+
+        <!-- Hidden POS receipt; will be revealed only during print -->
+        <div class="pos-receipt" aria-hidden="true">
+          <div class="pos-head center">
+            <div class="title">{{ merchant?.name }}</div>
+            <div class="small muted" v-if="merchantSelectedAddress">{{ merchantSelectedAddress.line1 }}, {{ merchantSelectedAddress.city }}</div>
+            <div class="small muted" v-if="merchant?.taxId">VAT/TAX: {{ merchant.taxId }}</div>
+          </div>
+
+          <hr class="pos-hr" />
+          <div class="center title">TAX INVOICE</div>
+          <div class="pos-line small"><span>No:</span><span>{{ invoice?.number }}</span></div>
+          <div class="pos-line small"><span>Date:</span><span>{{ invoice?.date }}</span></div>
+          <div class="pos-line small" v-if="customer?.name"><span>Customer:</span><span>{{ customer.name }}</span></div>
+
+          <hr class="pos-hr" />
+
+          <table class="pos-items">
+            <thead>
+              <tr>
+                <th class="sl">SL</th>
+                <th>Item Description</th>
+                <th class="amt">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(it, idx) in invoice.items" :key="it.id">
+                <td class="sl">{{ String(idx+1).padStart(2,'0') }}</td>
+                <td class="desc">
+                  <div class="nm">{{ productById(it.productId)?.name || it.description || '—' }}</div>
+                  <div class="muted small">{{ Number(it.qty||0) }} x {{ Number(it.unitPrice||0).toFixed(2) }}</div>
+                </td>
+                <td class="amt">{{ lineNet(it).toFixed(2) }}</td>
+              </tr>
+              <tr v-if="!invoice.items || !invoice.items.length"><td colspan="3" class="small muted">No items</td></tr>
+            </tbody>
+          </table>
+
+          <hr class="pos-hr" />
+
+          <div class="pos-totals">
+            <div class="pos-line"><span>Subtotal</span><span>{{ totals.sub.toFixed(2) }}</span></div>
+            <div class="pos-line"><span>VAT</span><span>{{ totals.tax.toFixed(2) }}</span></div>
+            <div class="pos-line" v-if="totals.shipping > 0"><span>Shipping</span><span>{{ totals.shipping.toFixed(2) }}</span></div>
+            <div class="pos-line grand"><span>Net Amount</span><span>{{ totals.total.toFixed(2) }}</span></div>
+            <div class="pos-line" v-if="creditsTotal > 0"><span>Credits</span><span>-{{ creditsTotal.toFixed(2) }}</span></div>
+            <div class="pos-line" v-if="invoice.paidInFull || Number(invoice.receivedAmount||0) > 0"><span>Received</span><span>{{ Number(invoice.receivedAmount||0).toFixed(2) }}</span></div>
+            <div class="pos-line" v-if="Number(invoice.changeAmount||0) > 0"><span>Change</span><span>{{ Number(invoice.changeAmount||0).toFixed(2) }}</span></div>
+            <div class="pos-line" v-if="invoice.paidInFull || Number(invoice.receivedAmount||0) > 0 || creditsTotal>0"><span>Balance</span><span>{{ Math.max(0, totals.total - creditsTotal - Number(invoice.receivedAmount||0)).toFixed(2) }}</span></div>
+          </div>
+
+          <hr class="pos-hr" />
+
+          <div class="small muted" v-if="shippingMethod">Shipping via {{ shippingMethod?.name }}</div>
+          <div class="small muted">Prices inclusive of VAT where applicable.</div>
+          <div class="center small muted" v-if="store.settings?.invoice?.footerText" style="margin-top:4px;">{{ store.settings.invoice.footerText }}</div>
+          <div class="center small" style="margin-top:6px">Thank you!</div>
+        </div>
+
       </SectionCard>
     </div>
   </div>
   <div v-else class="text-muted">Invoice not found.</div>
 </template>
+
+<style>
+/* POS receipt base (hidden on screen) */
+.pos-receipt { display: none; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; color: #000; }
+.pos-receipt .center { text-align: center; }
+.pos-receipt .title { font-weight: 700; letter-spacing: .5px; }
+.pos-receipt .small { font-size: 11px; }
+.pos-receipt .muted { color: #444; }
+.pos-receipt .pos-line { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.pos-receipt .pos-items { width: 100%; border-collapse: collapse; font-size: 12px; }
+.pos-receipt .pos-items th, .pos-receipt .pos-items td { padding: 2px 0; }
+.pos-receipt .pos-items .sl { width: 18px; }
+.pos-receipt .pos-items .desc .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 52mm; }
+.pos-receipt .pos-items .amt { text-align: right; white-space: nowrap; }
+.pos-receipt .pos-hr { border: 0; border-top: 1px dashed #000; margin: 6px 0; }
+.pos-receipt .pos-totals .grand { font-weight: 700; }
+
+/* Print-only rules for POS mode */
+@media print {
+  body.pos-print { margin: 0 !important; padding: 0 !important; }
+  @page { size: 80mm auto; margin: 0; }
+
+  /* Hide everything by default when printing in POS mode */
+  body.pos-print * { visibility: hidden !important; }
+
+  /* Show only the receipt */
+  body.pos-print .pos-receipt,
+  body.pos-print .pos-receipt * { visibility: visible !important; }
+
+  /* Ensure layout and dimensions for receipt */
+  body.pos-print .pos-receipt {
+    display: block !important;
+    position: fixed;
+    left: 0; top: 0;
+    width: 80mm;
+    padding: 4mm 3mm 8mm;
+    box-sizing: border-box;
+    background: #fff;
+  }
+}
+</style>
