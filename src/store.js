@@ -595,7 +595,17 @@ const shippingMethods = generateShippingBD()
     invoices: invoicesList,
     settings: {
       currency: 'BDT',
-      dateFormat: 'YYYY-MM-DD'
+        dateFormat: 'YYYY-MM-DD',
+        invoice: {
+          prefix: 'INV-',
+          nextNumber: 1001,
+          zeroPad: 4,
+          autoNumberOnSave: true,
+          footerText: 'Thank you for your business.',
+          defaultPaymentTermId: paymentTermsList[0]?.id || '',
+          defaultTermsTemplateId: termsList[0]?.id || '',
+          defaultShippingMethodId: shippingMethods[0]?.id || ''
+        }
     },
     ui: {
       sidebarCollapsed: false

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SectionCard from '../components/SectionCard.vue'
 import { store } from '../store'
@@ -16,6 +16,25 @@ const paymentTerm = computed(() => store.paymentTerms.find(x => x.id === invoice
 const termsTpl = computed(() => store.termsTemplates.find(x => x.id === invoice.value?.termsTemplateId))
 const shippingMethod = computed(() => store.shippingMethods.find(s => s.id === invoice.value?.shippingMethodId))
 function productById(id) { return store.products.find(p => p.id === id) }
+
+// Resolve selected merchant/customer address & contact
+const merchantAddresses = computed(() => merchant.value?.addresses || [])
+const merchantContacts = computed(() => merchant.value?.contacts || [])
+const merchantSelectedAddress = computed(() =>
+  merchantAddresses.value.find(a => a.id === invoice.value?.merchantAddressId) || merchantAddresses.value[0]
+)
+const merchantSelectedContact = computed(() =>
+  merchantContacts.value.find(c => c.id === invoice.value?.merchantContactId) || merchantContacts.value[0]
+)
+
+const customerAddresses = computed(() => customer.value?.addresses || [])
+const customerContacts = computed(() => customer.value?.contacts || [])
+const customerSelectedAddress = computed(() =>
+  customerAddresses.value.find(a => a.id === invoice.value?.customerAddressId) || customerAddresses.value[0]
+)
+const customerSelectedContact = computed(() =>
+  customerContacts.value.find(c => c.id === invoice.value?.customerContactId) || customerContacts.value[0]
+)
 
 function lineNet(it) {
   const base = (Number(it.qty)||0) * (Number(it.unitPrice)||0)
@@ -34,8 +53,27 @@ const totals = computed(() => {
     const t = store.taxes.find(x => x.id === it.taxId)
     if (t) tax += net * (Number(t.rate)||0) / 100
   }
-  const ship = Number(inv.shippingFee||0)
+  const ship = Number(inv.shippingFree ? 0 : (inv.shippingAmount ?? inv.shippingFee ?? 0))
   return { sub, tax, shipping: ship, total: sub + tax + ship }
+})
+
+// Payment schedule (hide when fully paid)
+function addDaysStr(dateStr, days){ const [y,m,d]=String(dateStr||'').split('-').map(Number); const dt=new Date(y||0,(m||1)-1,d||1); dt.setDate(dt.getDate()+(Number(days)||0)); const yy=dt.getFullYear(), mm=String(dt.getMonth()+1).padStart(2,'0'), dd=String(dt.getDate()).padStart(2,'0'); return `${yy}-${mm}-${dd}` }
+function nextDayOfMonthStr(dateStr, day){ const [y,m,d]=String(dateStr||'').split('-').map(Number); const dt=new Date(y||0,(m||1)-1,d||1); const nd=new Date(dt.getFullYear(), dt.getMonth()+1, 1); const last=new Date(nd.getFullYear(), nd.getMonth()+1, 0).getDate(); nd.setDate(Math.min(Number(day)||1,last)); const yy=nd.getFullYear(), mm=String(nd.getMonth()+1).padStart(2,'0'), dd=String(nd.getDate()).padStart(2,'0'); return `${yy}-${mm}-${dd}` }
+const scheduleRows = computed(() => {
+  const inv = invoice.value
+  const term = paymentTerm.value
+  if (!inv || !term || inv.paidInFull) return []
+  const total = totals.value.total
+  const lines = (term.schedule || []).slice().sort((a,b)=> (a.sequence||0)-(b.sequence||0))
+  let remaining = total
+  return lines.map((l, idx) => {
+    const date = l.dateType === 'day_of_month' ? nextDayOfMonthStr(inv.date, l.dayOfMonth||1) : addDaysStr(inv.date, l.days||0)
+    let amount = l.valueType === 'percent' ? total * (Number(l.valueAmount)||0)/100 : Number(l.valueAmount)||0
+    if (idx === lines.length - 1) amount = remaining
+    remaining = Math.max(0, remaining - amount)
+    return [l.description || `Installment ${idx+1}`, date, amount]
+  })
 })
 
 // Print and PDF
@@ -128,14 +166,15 @@ async function downloadPdf() {
       {
         columns: [
           [
-            { text: 'Invoice', style: 'title' },
-            { text: `No: ${inv.number}` },
-            { text: `Date: ${inv.date}` },
-            { text: `Due: ${inv.dueDate}` }
+            { text: merch?.name || '', bold: true },
+            { text: merch?.addresses?.length ? `${merch.addresses[0].line1}, ${merch.addresses[0].city}` : '' },
+            merch?.taxId ? { text: `VAT/TAX ID: ${merch.taxId}`, color: '#6c757d', fontSize: 9 } : {}
           ],
           [
-            { text: merch?.name || '', alignment: 'right', bold: true },
-            { text: merch?.addresses?.length ? `${merch.addresses[0].line1}, ${merch.addresses[0].city}` : '', alignment: 'right' }
+            { text: 'Invoice', style: 'title', alignment: 'right' },
+            { text: `No: ${inv.number}`, bold: true, alignment: 'right' },
+            { text: `Date: ${inv.date}`, alignment: 'right' },
+            { text: `Due: ${inv.dueDate}`, alignment: 'right' }
           ]
         ]
       },
@@ -168,7 +207,10 @@ async function downloadPdf() {
     footer: (currentPage, pageCount) => ({
       margin: [28, 8, 28, 16],
       fontSize: 9,
-      text: (termsTpl.value?.content || '').trim()
+      text: [
+        (termsTpl.value?.content || '').trim(),
+        store.settings?.invoice?.footerText ? ('\n' + store.settings.invoice.footerText) : ''
+      ].join('')
     }),
     styles: {
       title: { fontSize: 18, color: '#4a148c', bold: true }
@@ -199,21 +241,25 @@ function editInvoice() {
         <div class="print-area" ref="printRef">
           <div class="d-flex justify-content-between mb-3">
             <div>
-              <h4 class="mb-1">Invoice</h4>
-              <div>No: {{ invoice.number }}</div>
-              <div>Date: {{ invoice.date }}</div>
-              <div>Due: {{ invoice.dueDate }}</div>
+              <strong>{{ merchant?.name }}</strong><br/>
+              <span v-if="merchantSelectedAddress">{{ merchantSelectedAddress.line1 }}, {{ merchantSelectedAddress.city }}</span><br v-if="merchantSelectedAddress"/>
+              <span v-if="merchant?.taxId" class="text-muted small">VAT/TAX ID: {{ merchant.taxId }}</span><br v-if="merchant?.taxId"/>
+              <span v-if="merchantSelectedContact" class="text-muted small">{{ merchantSelectedContact.name }}<span v-if="merchantSelectedContact.email"> · {{ merchantSelectedContact.email }}</span><span v-if="merchantSelectedContact.phone"> · {{ merchantSelectedContact.phone }}</span></span>
             </div>
             <div class="text-end">
-              <strong>{{ merchant?.name }}</strong><br/>
-              <span v-if="merchant?.addresses?.length">{{ merchant.addresses[0].line1 }}, {{ merchant.addresses[0].city }}</span>
+              <h4 class="mb-1">Invoice</h4>
+              <div><strong>No: {{ invoice.number }}</strong></div>
+              <div>Date: {{ invoice.date }}</div>
+              <div>Due: {{ invoice.dueDate }}</div>
             </div>
           </div>
 
           <div class="mb-2">
             <div><strong>Bill To</strong></div>
             <div>{{ customer?.name }}</div>
-            <div v-if="customer?.addresses?.length">{{ customer.addresses[0].line1 }}, {{ customer.addresses[0].city }}</div>
+            <div v-if="customerSelectedAddress">{{ customerSelectedAddress.line1 }}, {{ customerSelectedAddress.city }}</div>
+            <div v-if="customer?.taxId" class="text-muted small">VAT/TAX ID: {{ customer.taxId }}</div>
+            <div v-if="customerSelectedContact" class="text-muted small">{{ customerSelectedContact.name }}<span v-if="customerSelectedContact.email"> · {{ customerSelectedContact.email }}</span><span v-if="customerSelectedContact.phone"> · {{ customerSelectedContact.phone }}</span></div>
           </div>
 
           <table class="table table-sm align-middle mt-2">
@@ -247,16 +293,50 @@ function editInvoice() {
           <div class="mt-2 text-end">
             <div>Subtotal: {{ totals.sub.toFixed(2) }}</div>
             <div>Tax: {{ totals.tax.toFixed(2) }}</div>
-            <div>Shipping: {{ totals.shipping.toFixed(2) }}</div>
+            <div>
+              Shipping:
+              <template v-if="invoice.shippingFree">
+                <span class="text-decoration-line-through">{{ Number(invoice.shippingAmount||0).toFixed(2) }}</span>
+                <span class="ms-1">0.00</span>
+              </template>
+              <template v-else>
+                {{ totals.shipping.toFixed(2) }}
+              </template>
+            </div>
             <div><strong>Total: {{ totals.total.toFixed(2) }}</strong></div>
+            <div v-if="invoice.paidInFull || Number(invoice.receivedAmount||0) > 0">Received: {{ Number(invoice.receivedAmount||0).toFixed(2) }}</div>
+            <div v-if="Number(invoice.changeAmount||0) > 0">Change: {{ Number(invoice.changeAmount||0).toFixed(2) }}</div>
+            <div v-if="invoice.paidInFull || Number(invoice.receivedAmount||0) > 0"><strong>Balance Due: {{ Math.max(0, totals.total - Number(invoice.receivedAmount||0)).toFixed(2) }}</strong></div>
           </div>
           <div class="text-muted small text-end" v-if="shippingMethod">
             Shipping via {{ shippingMethod?.name }}
           </div>
 
+          <div class="mt-2" v-if="paymentTerm && !invoice.paidInFull && scheduleRows.length">
+            <strong>Payment Schedule — {{ paymentTerm?.name }}</strong>
+            <table class="table table-sm mt-1">
+              <thead class="table-light"><tr><th>Installment</th><th>Date</th><th class="text-end">Amount</th></tr></thead>
+              <tbody>
+                <tr v-for="r in scheduleRows" :key="r[0] + r[1]">
+                  <td>{{ r[0] }}</td>
+                  <td>{{ r[1] }}</td>
+                  <td class="text-end">{{ Number(r[2]).toFixed(2) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
           <div class="mt-3 invoice-terms" v-if="termsTpl?.content">
             <strong>Terms</strong>
             <div style="white-space:pre-wrap;">{{ termsTpl.content }}</div>
+          </div>
+          <div class="mt-2 text-muted" v-if="store.settings?.invoice?.footerText">
+            {{ store.settings.invoice.footerText }}
+          </div>
+
+          <div class="mt-2" v-if="invoice.notes">
+            <strong>Notes</strong>
+            <div style="white-space:pre-wrap;">{{ invoice.notes }}</div>
           </div>
         </div>
       </SectionCard>

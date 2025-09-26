@@ -12,14 +12,22 @@ const draft = reactive({
   date: today(),
   dueDate: today(),
   merchantId: '',
+  merchantAddressId: '',
+  merchantContactId: '',
   customerId: '',
-  paymentTermId: store.paymentTerms[0]?.id || '',
-  termsTemplateId: store.termsTemplates[0]?.id || '',
-  shippingMethodId: '',
+  customerAddressId: '',
+  customerContactId: '',
+  paymentTermId: store.settings?.invoice?.defaultPaymentTermId || '',
+  termsTemplateId: store.settings?.invoice?.defaultTermsTemplateId || '',
+  shippingMethodId: store.settings?.invoice?.defaultShippingMethodId || '',
   shippingAmount: 0,   // editable per invoice
   shippingCod: false,  // editable per invoice
   shippingFree: false, // if true => charge 0 but show struck-through amount
   shippingFee: 0,      // persisted computed fee for list/summary
+  // Payment capture
+  receivedAmount: 0,
+  changeAmount: 0,
+  paidInFull: false,
   notes: '',
   items: []
 })
@@ -32,6 +40,9 @@ onMounted(() => {
     const inv = store.invoices.find(i => i.id === route.params.id)
     if (inv) Object.assign(draft, JSON.parse(JSON.stringify(inv)))
   }
+  // Ensure defaults if selections are missing
+  if (draft.merchantId && !draft.merchantAddressId) setMerchantDefaults()
+  if (draft.customerId && !draft.customerAddressId) setCustomerDefaults()
 })
 
 // Helper to resolve product info in preview reliably
@@ -39,8 +50,36 @@ function productById(id) {
   return store.products.find(p => p.id === id)
 }
 
+// Address/contact lists and selected records
 const merchant = computed(() => store.merchants.find(x=>x.id===draft.merchantId))
+const merchantAddresses = computed(() => merchant.value?.addresses || [])
+const merchantContacts = computed(() => merchant.value?.contacts || [])
+const merchantSelectedAddress = computed(() => merchantAddresses.value.find(a => a.id === draft.merchantAddressId))
+const merchantSelectedContact = computed(() => merchantContacts.value.find(c => c.id === draft.merchantContactId))
+
 const customer = computed(() => store.customers.find(x=>x.id===draft.customerId))
+const customerAddresses = computed(() => customer.value?.addresses || [])
+const customerContacts = computed(() => customer.value?.contacts || [])
+const customerSelectedAddress = computed(() => customerAddresses.value.find(a => a.id === draft.customerAddressId))
+const customerSelectedContact = computed(() => customerContacts.value.find(c => c.id === draft.customerContactId))
+
+function setMerchantDefaults() {
+  const m = merchant.value
+  if (!m) return
+  draft.merchantAddressId = m.addresses?.find(a => a.type === 'primary')?.id || m.addresses?.[0]?.id || ''
+  draft.merchantContactId = m.contacts?.find(c => c.type === 'primary')?.id || m.contacts?.[0]?.id || ''
+}
+function setCustomerDefaults() {
+  const c = customer.value
+  if (!c) return
+  draft.customerAddressId = c.addresses?.find(a => a.type === 'primary')?.id || c.addresses?.[0]?.id || ''
+  draft.customerContactId = c.contacts?.find(cn => cn.type === 'primary')?.id || c.contacts?.[0]?.id || ''
+}
+
+// Update defaults when merchant/customer changes
+watch(() => draft.merchantId, () => setMerchantDefaults())
+watch(() => draft.customerId, () => setCustomerDefaults())
+
 const terms = computed(() => store.termsTemplates.find(x=>x.id===draft.termsTemplateId)?.content || '')
 const termDef = computed(() => store.paymentTerms.find(x=>x.id===draft.paymentTermId))
 
@@ -104,6 +143,14 @@ watch(() => draft.shippingMethodId, () => {
     draft.shippingFree = false
   }
 })
+
+// Sync "paid in full" with totals
+watch([() => draft.paidInFull, totals], () => {
+  if (draft.paidInFull) {
+    draft.receivedAmount = Number(totals.value.total || 0)
+    draft.changeAmount = 0
+  }
+})
 // sub/tax without shipping to avoid circular dependency
 const totalsNoShip = computed(() => {
   let sub = 0, tax = 0
@@ -134,7 +181,7 @@ const paymentSchedule = computed(() => {
   const issue = draft.date
   const total = totals.value.total
   if (!term || !issue) {
-    return [{ label: 'Due', date: addDays(issue, 0), amount: total }]
+    return [] // no term => no schedule
   }
   const lines = (term.schedule || []).slice().sort((a,b)=> (a.sequence||0)-(b.sequence||0))
   let remaining = total
@@ -180,12 +227,15 @@ watch([() => draft.date, () => draft.paymentTermId, totals], () => {
   draft.dueDate = dueDateComputed.value
 })
 function autoNumber() {
-  const n = (store.invoices.length + 1).toString().padStart(4, '0')
-  draft.number = `INV-${n}`
+  const invSet = store.settings?.invoice || { prefix: 'INV-', nextNumber: 1, zeroPad: 0 }
+  const nStr = String(invSet.nextNumber).padStart(Number(invSet.zeroPad)||0, '0')
+  draft.number = `${invSet.prefix || ''}${nStr}`
+  // increment sequence
+  invSet.nextNumber = Number(invSet.nextNumber || 1) + 1
 }
 function save() {
   if (!draft.merchantId || !draft.customerId) return
-  if (!draft.number) autoNumber()
+  if (!draft.number && store.settings?.invoice?.autoNumberOnSave) autoNumber()
   if (!draft.id) draft.id = uid('inv_')
   // compute and persist fee based on editable amount / free flag
   draft.shippingFee = shippingFee.value
@@ -271,7 +321,15 @@ async function downloadPdf() {
   // Build content
   const merch = merchant.value
   const cust = customer.value
+  const merchAddr = merchantSelectedAddress.value
+  const custAddr = customerSelectedAddress.value
+  const merchContact = merchantSelectedContact.value
+  const custContact = customerSelectedContact.value
   const scheduleRows = paymentSchedule.value.map(r => [r.label, r.date, { text: r.amount.toFixed(2), alignment: 'right' }])
+  const received = Number(draft.receivedAmount||0)
+  const changeAmt = Number(draft.changeAmount||0)
+  const balanceDue = Math.max(0, (totals.value.total||0) - received)
+  const termsText = (store.termsTemplates.find(t => t.id === draft.termsTemplateId)?.content || '').trim()
 
   const body = [
     [{ text: 'Product / Description', bold: true }, { text: 'Qty', alignment: 'right', bold: true }, { text: 'Unit', alignment: 'right', bold: true }, { text: 'Discount', alignment: 'right', bold: true }, { text: 'Line', alignment: 'right', bold: true }],
@@ -305,14 +363,18 @@ async function downloadPdf() {
           ],
           [
             { text: merch?.name || 'Select Merchant', alignment: 'right', bold: true },
-            { text: merch?.addresses?.length ? `${merch.addresses[0].line1}, ${merch.addresses[0].city}` : '', alignment: 'right' }
+            { text: merchAddr ? `${merchAddr.line1}, ${merchAddr.city}` : '', alignment: 'right' },
+            merch?.taxId ? { text: `VAT/TAX ID: ${merch.taxId}`, alignment: 'right', color: '#6c757d', fontSize: 9 } : {},
+            merchContact ? { text: `${merchContact.name}${merchContact.email ? ' · '+merchContact.email : ''}${merchContact.phone ? ' · '+merchContact.phone : ''}`, alignment: 'right', color: '#6c757d', fontSize: 9 } : {}
           ]
         ]
       },
       { text: ' ', margin: [0,6] },
       { text: 'Bill To', bold: true },
       { text: cust?.name || 'Select Customer' },
-      { text: cust?.addresses?.length ? `${cust.addresses[0].line1}, ${cust.addresses[0].city}` : '' },
+      { text: custAddr ? `${custAddr.line1}, ${custAddr.city}` : '' },
+      cust?.taxId ? { text: `VAT/TAX ID: ${cust.taxId}`, color: '#6c757d', fontSize: 9 } : {},
+      custContact ? { text: `${custContact.name}${custContact.email ? ' · '+custContact.email : ''}${custContact.phone ? ' · '+custContact.phone : ''}`, color: '#6c757d', fontSize: 9 } : {},
       { text: ' ', margin: [0,6] },
       {
         table: {
@@ -337,13 +399,16 @@ async function downloadPdf() {
                     { text: `(was ${Number(draft.shippingAmount||0).toFixed(2)})`, decoration: 'lineThrough' }
                   ] }
                 : { text: `Shipping: ${(totals.value.shipping||0).toFixed(2)}` },
-              { text: `Total: ${totals.value.total.toFixed(2)}`, bold: true }
+              { text: `Total: ${totals.value.total.toFixed(2)}`, bold: true },
+              (draft.paidInFull || received > 0) ? { text: `Received: ${received.toFixed(2)}` } : {},
+              (changeAmt > 0) ? { text: `Change: ${changeAmt.toFixed(2)}` } : {},
+              (draft.paidInFull || received > 0) ? { text: `Balance Due: ${balanceDue.toFixed(2)}`, bold: true } : {}
             ]
           }
         ],
         margin: [0, 8, 0, 0]
       },
-      ...(scheduleRows.length ? [
+      ...((scheduleRows.length && !draft.paidInFull) ? [
         { text: `Payment Schedule — ${termDef.value?.name || ''}`, bold: true, margin: [0,8,0,4] },
         {
           table: {
@@ -356,12 +421,16 @@ async function downloadPdf() {
           },
           layout: 'lightHorizontalLines'
         }
+      ] : []),
+      ...(termsText ? [
+        { text: 'Terms', bold: true, margin: [0, 12, 0, 4] },
+        { text: termsText, fontSize: 9 }
       ] : [])
     ],
     footer: (currentPage, pageCount) => ({
       margin: [28, 8, 28, 16],
       fontSize: 9,
-      text: (store.termsTemplates.find(t => t.id === draft.termsTemplateId)?.content || '').trim()
+      text: store.settings?.invoice?.footerText || ''
     }),
     styles: {
       title: { fontSize: 18, color: '#4a148c', bold: true }
@@ -400,6 +469,20 @@ async function downloadPdf() {
               <option value="">Select a merchant</option>
               <option v-for="m in store.merchants" :key="m.id" :value="m.id">{{ m.name }}</option>
             </select>
+            <div class="row g-2 mt-1" v-if="merchant">
+              <div class="col-7">
+                <label class="form-label small mb-1">Address</label>
+                <select class="form-select form-select-sm" v-model="draft.merchantAddressId">
+                  <option v-for="a in merchantAddresses" :key="a.id" :value="a.id">{{ a.type }} — {{ a.city }}</option>
+                </select>
+              </div>
+              <div class="col-5">
+                <label class="form-label small mb-1">Contact</label>
+                <select class="form-select form-select-sm" v-model="draft.merchantContactId">
+                  <option v-for="c in merchantContacts" :key="c.id" :value="c.id">{{ c.type }} — {{ c.name }}</option>
+                </select>
+              </div>
+            </div>
             <div v-if="draft.id" class="form-text">Locked for existing invoice</div>
           </div>
           <div class="col-md-6">
@@ -408,18 +491,34 @@ async function downloadPdf() {
               <option value="">Select a customer</option>
               <option v-for="c in store.customers" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
+            <div class="row g-2 mt-1" v-if="customer">
+              <div class="col-7">
+                <label class="form-label small mb-1">Address</label>
+                <select class="form-select form-select-sm" v-model="draft.customerAddressId">
+                  <option v-for="a in customerAddresses" :key="a.id" :value="a.id">{{ a.type }} — {{ a.city }}</option>
+                </select>
+              </div>
+              <div class="col-5">
+                <label class="form-label small mb-1">Contact</label>
+                <select class="form-select form-select-sm" v-model="draft.customerContactId">
+                  <option v-for="c in customerContacts" :key="c.id" :value="c.id">{{ c.type }} — {{ c.name }}</option>
+                </select>
+              </div>
+            </div>
             <div v-if="draft.id" class="form-text">Locked for existing invoice</div>
           </div>
 
           <div class="col-md-6">
             <label class="form-label">Payment Terms</label>
             <select class="form-select" v-model="draft.paymentTermId">
+              <option value="">—</option>
               <option v-for="t in store.paymentTerms" :key="t.id" :value="t.id">{{ t.name }}</option>
             </select>
           </div>
           <div class="col-md-6">
             <label class="form-label">Terms Template</label>
             <select class="form-select" v-model="draft.termsTemplateId">
+              <option value="">—</option>
               <option v-for="t in store.termsTemplates" :key="t.id" :value="t.id">{{ t.name }}</option>
             </select>
           </div>
@@ -452,6 +551,26 @@ async function downloadPdf() {
               </div>
               <div class="form-text">
                 Estimated {{ shippingMethod?.leadDaysMin }}–{{ shippingMethod?.leadDaysMax }} days. Provider COD default: {{ shippingMethod?.codAvailable ? 'Yes' : 'No' }}.
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment capture -->
+          <div class="col-12">
+            <div class="row g-2 align-items-end">
+              <div class="col-sm-4">
+                <label class="form-label">Received Amount (৳)</label>
+                <input class="form-control form-control-sm text-end" type="number" min="0" step="0.01" v-model.number="draft.receivedAmount" :disabled="draft.paidInFull"/>
+              </div>
+              <div class="col-sm-4">
+                <label class="form-label">Change (৳)</label>
+                <input class="form-control form-control-sm text-end" type="number" min="0" step="0.01" v-model.number="draft.changeAmount" :disabled="draft.paidInFull"/>
+              </div>
+              <div class="col-sm-4">
+                <div class="form-check mt-4">
+                  <input class="form-check-input" type="checkbox" id="paidFull" v-model="draft.paidInFull">
+                  <label class="form-check-label" for="paidFull">Mark as Fully Paid</label>
+                </div>
               </div>
             </div>
           </div>
@@ -499,21 +618,25 @@ async function downloadPdf() {
         <div class="print-area" ref="printRef">
           <div class="d-flex justify-content-between mb-3">
             <div>
+              <strong>{{ merchant?.name || 'Select Merchant' }}</strong><br/>
+              <span v-if="merchantSelectedAddress">{{ merchantSelectedAddress.line1 }}, {{ merchantSelectedAddress.city }}</span><br v-if="merchantSelectedAddress"/>
+              <span v-if="merchant?.taxId" class="text-muted small">VAT/TAX ID: {{ merchant.taxId }}</span><br v-if="merchant?.taxId"/>
+              <span v-if="merchantSelectedContact" class="text-muted small">{{ merchantSelectedContact.name }}<span v-if="merchantSelectedContact.email"> · {{ merchantSelectedContact.email }}</span><span v-if="merchantSelectedContact.phone"> · {{ merchantSelectedContact.phone }}</span></span>
+            </div>
+            <div class="text-end">
               <h4 class="mb-1">Invoice</h4>
               <div>No: {{ draft.number || '(not set)' }}</div>
               <div>Date: {{ draft.date }}</div>
               <div>Due: {{ draft.dueDate }}</div>
-            </div>
-            <div class="text-end">
-              <strong>{{ merchant?.name || 'Select Merchant' }}</strong><br/>
-              <span v-if="merchant?.addresses?.length">{{ merchant.addresses[0].line1 }}, {{ merchant.addresses[0].city }}</span>
             </div>
           </div>
 
           <div class="mb-2">
             <div><strong>Bill To</strong></div>
             <div>{{ customer?.name || 'Select Customer' }}</div>
-            <div v-if="customer?.addresses?.length">{{ customer.addresses[0].line1 }}, {{ customer.addresses[0].city }}</div>
+            <div v-if="customerSelectedAddress">{{ customerSelectedAddress.line1 }}, {{ customerSelectedAddress.city }}</div>
+            <div v-if="customer?.taxId" class="text-muted small">VAT/TAX ID: {{ customer.taxId }}</div>
+            <div v-if="customerSelectedContact" class="text-muted small">{{ customerSelectedContact.name }}<span v-if="customerSelectedContact.email"> · {{ customerSelectedContact.email }}</span><span v-if="customerSelectedContact.phone"> · {{ customerSelectedContact.phone }}</span></div>
           </div>
 
           <table class="table table-sm align-middle mt-2">
@@ -561,12 +684,15 @@ async function downloadPdf() {
               </template>
             </div>
             <div><strong>Total: {{ totals.total.toFixed(2) }}</strong></div>
+            <div v-if="draft.paidInFull || Number(draft.receivedAmount||0) > 0">Received: {{ Number(draft.receivedAmount||0).toFixed(2) }}</div>
+            <div v-if="Number(draft.changeAmount||0) > 0">Change: {{ Number(draft.changeAmount||0).toFixed(2) }}</div>
+            <div v-if="draft.paidInFull || Number(draft.receivedAmount||0) > 0"><strong>Balance Due: {{ Math.max(0, totals.total - Number(draft.receivedAmount||0)).toFixed(2) }}</strong></div>
           </div>
           <div class="text-muted small text-end" v-if="shippingMethod">
             Shipping via {{ shippingMethod?.name }} ({{ shippingMethod?.leadDaysMin }}–{{ shippingMethod?.leadDaysMax }} days)
           </div>
 
-          <div class="mt-2" v-if="termDef">
+          <div class="mt-2" v-if="termDef && !draft.paidInFull">
             <strong>Payment Schedule — {{ termDef?.name }}</strong>
             <table class="table table-sm mt-1">
               <thead class="table-light"><tr><th>Installment</th><th>Date</th><th class="text-end">Amount</th></tr></thead>
@@ -580,7 +706,7 @@ async function downloadPdf() {
             </table>
           </div>
 
-          <div class="mt-3">
+          <div class="mt-3" v-if="terms">
             <strong>Terms</strong>
             <div style="white-space:pre-wrap;">{{ terms }}</div>
           </div>

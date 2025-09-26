@@ -110,3 +110,7 @@ textarea.form-control:focus {
   }
   .print-area .invoice-terms { margin-top: auto; }
 }
+
+.print-area{
+    font-size: 0.7rem;
+}
