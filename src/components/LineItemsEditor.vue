@@ -98,12 +98,12 @@ defineExpose({ totals })
       </tbody>
     </table>
 
-    <div class="d-flex align-items-center mt-2">
+    <div class="d-flex align-items-start mt-2">
       <button class="btn btn-sm btn-outline-secondary" type="button" @click="addItem">+ Add line</button>
-      <div class="ms-auto d-flex gap-2">
-        <span class="badge text-bg-light border">Subtotal: {{ totals.sub.toFixed(2) }}</span>
-        <span class="badge text-bg-light border">Tax: {{ totals.tax.toFixed(2) }}</span>
-        <span class="badge text-bg-light border">Total: {{ totals.total.toFixed(2) }}</span>
+      <div class="ms-auto text-end">
+        <div class="badge text-bg-light border d-block mb-1">Subtotal: {{ totals.sub.toFixed(2) }}</div>
+        <div class="badge text-bg-light border d-block mb-1">Tax: {{ totals.tax.toFixed(2) }}</div>
+        <div class="badge text-bg-light border d-block">Total: {{ totals.total.toFixed(2) }}</div>
       </div>
     </div>
   </div>
