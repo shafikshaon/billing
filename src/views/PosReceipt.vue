@@ -1,6 +1,16 @@
 <script setup>
-import { reactive, ref, computed, onMounted, nextTick } from 'vue'
+import { reactive, ref, computed, watch, onMounted, nextTick } from 'vue'
 import SectionCard from '../components/SectionCard.vue'
+import { store } from '../store'
+
+// Store data
+const merchants = computed(() => store.merchants || [])
+const customers = computed(() => store.customers || [])
+const products = computed(() => store.products || [])
+
+// Selected references
+const selectedMerchantId = ref('')
+const selectedCustomerId = ref('')
 
 // Header (persisted locally)
 const header = reactive({
@@ -21,21 +31,74 @@ const receipt = reactive({
   note: '',
 })
 
-// Payments
+// Payments (Cash, Card, MFS)
 const payments = reactive({
   cash: 0,
   card: 0,
-  mobile: 0,
+  mfs: 0,
 })
 
 // Items
-const items = ref([{ id: 1, name: '', qty: 1, unitPrice: 0, discountType: 'none', discountValue: 0, taxRate: 0 }])
+const items = ref([
+  { id: 1, productId: '', name: '', qty: 1, unitPrice: 0, discountType: 'none', discountValue: 0, taxRate: 0 }
+])
 function addItem() {
-  items.value.push({ id: Date.now() + Math.random(), name: '', qty: 1, unitPrice: 0, discountType: 'none', discountValue: 0, taxRate: 0 })
+  items.value.push({ id: Date.now() + Math.random(), productId: '', name: '', qty: 1, unitPrice: 0, discountType: 'none', discountValue: 0, taxRate: 0 })
 }
 function removeItem(i) {
   items.value.splice(i, 1)
   if (!items.value.length) addItem()
+}
+
+// Utility: primary address/contact
+function primaryAddress(list) {
+  const arr = Array.isArray(list) ? list : []
+  return arr.find(a => a.isPrimary) || arr[0]
+}
+function primaryContact(list) {
+  const arr = Array.isArray(list) ? list : []
+  return arr.find(c => c.isPrimary) || arr[0]
+}
+
+// Auto-populate header from merchant
+watch(selectedMerchantId, (id) => {
+  const m = merchants.value.find(x => x.id === id)
+  if (!m) return
+  header.shopName = m.name || header.shopName
+  const addr = primaryAddress(m.addresses)
+  header.address = addr ? [addr.line1, addr.city].filter(Boolean).join(', ') : (m.address || header.address || '')
+  header.taxId = m.taxId || header.taxId
+  const contact = primaryContact(m.contacts)
+  header.phone = contact?.phone || m.phone || header.phone
+  saveHeader()
+})
+
+// Auto-populate customer info
+watch(selectedCustomerId, (id) => {
+  const c = customers.value.find(x => x.id === id)
+  if (!c) return
+  receipt.customerName = c.name || receipt.customerName
+  const contact = primaryContact(c.contacts)
+  receipt.customerPhone = contact?.phone || receipt.customerPhone
+})
+
+// Product change handler
+function productDefaultPrice(p) {
+  if (!p) return null
+  const keys = ['price', 'unitPrice', 'sellingPrice', 'rate', 'mrp']
+  for (const k of keys) {
+    const v = Number(p[k])
+    if (!Number.isNaN(v) && v > 0) return v
+  }
+  return null
+}
+function onProductChange(it) {
+  const p = products.value.find(x => x.id === it.productId)
+  if (p) {
+    it.name = p.name || it.name
+    const v = productDefaultPrice(p)
+    if (v != null) it.unitPrice = v
+  }
 }
 
 // Math
@@ -55,7 +118,7 @@ const totals = computed(() => {
   const sub = items.value.reduce((s, it) => s + lineBase(it), 0) - disc
   const tax = items.value.reduce((s, it) => s + lineTax(it), 0)
   const total = Math.max(0, sub + tax)
-  const paid = Number(payments.cash || 0) + Number(payments.card || 0) + Number(payments.mobile || 0)
+  const paid = Number(payments.cash || 0) + Number(payments.card || 0) + Number(payments.mfs || 0)
   const change = Math.max(0, paid - total)
   const due = Math.max(0, total - paid)
   return { disc, sub, tax, total, paid, change, due }
@@ -98,19 +161,25 @@ function autoNumber() {
 function resetReceipt() {
   receipt.number = autoNumber()
   receipt.date = new Date().toISOString().slice(0, 10)
+  selectedCustomerId.value = ''
   receipt.customerName = ''
   receipt.customerPhone = ''
   receipt.note = ''
-  payments.cash = 0; payments.card = 0; payments.mobile = 0
-  items.value = [{ id: 1, name: '', qty: 1, unitPrice: 0, discountType: 'none', discountValue: 0, taxRate: 0 }]
+  payments.cash = 0; payments.card = 0; payments.mfs = 0
+  items.value = [{ id: 1, productId: '', name: '', qty: 1, unitPrice: 0, discountType: 'none', discountValue: 0, taxRate: 0 }]
 }
 
-// Persist header
+// Persist header and sample cashier names (Bangladesh)
 onMounted(() => {
   receipt.number = autoNumber()
   try { Object.assign(header, JSON.parse(localStorage.getItem('posReceiptHeader') || '{}') || {}) } catch {}
 })
 function saveHeader() { localStorage.setItem('posReceiptHeader', JSON.stringify(header)) }
+
+const cashierSuggestions = [
+  'Md. Rahim', 'Abdul Karim', 'Ayesha Sultana', 'Sakib Hasan',
+  'Sharmin Akter', 'Tanvir Ahmed', 'Taslima Begum', 'Shafiul Islam'
+]
 </script>
 
 <template>
@@ -127,6 +196,14 @@ function saveHeader() { localStorage.setItem('posReceiptHeader', JSON.stringify(
         <div class="row g-3">
           <!-- Left: Header and Customer -->
           <div class="col-12 col-lg-4">
+            <div class="mb-2">
+              <label class="form-label small">Shop (Merchant)</label>
+              <select class="form-select form-select-sm" v-model="selectedMerchantId">
+                <option value="">Select shop (optional)</option>
+                <option v-for="m in merchants" :key="m.id" :value="m.id">{{ m.name }}</option>
+              </select>
+            </div>
+
             <div class="mb-2">
               <label class="form-label small">Shop Name</label>
               <input class="form-control form-control-sm" v-model="header.shopName" @change="saveHeader" placeholder="Store / Company">
@@ -148,7 +225,10 @@ function saveHeader() { localStorage.setItem('posReceiptHeader', JSON.stringify(
             <div class="row">
               <div class="col-6 mb-2">
                 <label class="form-label small">Cashier</label>
-                <input class="form-control form-control-sm" v-model="header.cashier" @change="saveHeader" placeholder="Name">
+                <input class="form-control form-control-sm" v-model="header.cashier" list="bd-cashiers" @change="saveHeader" placeholder="e.g. Md. Rahim">
+                <datalist id="bd-cashiers">
+                  <option v-for="c in cashierSuggestions" :key="c" :value="c">{{ c }}</option>
+                </datalist>
               </div>
               <div class="col-6 mb-2">
                 <label class="form-label small">Currency</label>
@@ -168,8 +248,14 @@ function saveHeader() { localStorage.setItem('posReceiptHeader', JSON.stringify(
             </div>
 
             <div class="mb-2">
-              <label class="form-label small">Customer Name</label>
-              <input class="form-control form-control-sm" v-model="receipt.customerName" placeholder="Walk-in customer">
+              <label class="form-label small">Customer</label>
+              <div class="input-group input-group-sm">
+                <select class="form-select form-select-sm" style="max-width:50%" v-model="selectedCustomerId">
+                  <option value="">Manual entry</option>
+                  <option v-for="c in customers" :key="c.id" :value="c.id">{{ c.name }}</option>
+                </select>
+                <input class="form-control form-control-sm" v-model="receipt.customerName" placeholder="Walk-in customer">
+              </div>
             </div>
             <div class="mb-2">
               <label class="form-label small">Customer Phone</label>
@@ -187,18 +273,26 @@ function saveHeader() { localStorage.setItem('posReceiptHeader', JSON.stringify(
               <table class="table table-sm align-middle">
                 <thead class="table-light">
                   <tr>
-                    <th style="width:28%">Item</th>
+                    <th style="width:32%">Item</th>
                     <th class="text-end" style="width:8%">Qty</th>
                     <th class="text-end" style="width:14%">Rate</th>
                     <th class="text-end" style="width:18%">Discount</th>
                     <th class="text-end" style="width:10%">VAT%</th>
                     <th class="text-end" style="width:14%">Line</th>
-                    <th style="width:8%"></th>
+                    <th style="width:4%"></th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="(it, i) in items" :key="it.id">
-                    <td><input class="form-control form-control-sm" v-model="it.name" placeholder="Item name"></td>
+                    <td>
+                      <div class="input-group input-group-sm">
+                        <select class="form-select form-select-sm" style="max-width:55%" v-model="it.productId" @change="onProductChange(it)">
+                          <option value="">Custom</option>
+                          <option v-for="p in products" :key="p.id" :value="p.id">{{ p.name }}</option>
+                        </select>
+                        <input class="form-control form-control-sm" v-model="it.name" placeholder="Item name">
+                      </div>
+                    </td>
                     <td><input class="form-control form-control-sm text-end" v-model.number="it.qty" type="number" step="1" min="0"></td>
                     <td><input class="form-control form-control-sm text-end" v-model.number="it.unitPrice" type="number" step="0.01" min="0"></td>
                     <td>
@@ -241,8 +335,8 @@ function saveHeader() { localStorage.setItem('posReceiptHeader', JSON.stringify(
                     <input class="form-control form-control-sm text-end" v-model.number="payments.card" type="number" step="0.01" min="0">
                   </div>
                   <div>
-                    <label class="form-label small">Mobile</label>
-                    <input class="form-control form-control-sm text-end" v-model.number="payments.mobile" type="number" step="0.01" min="0">
+                    <label class="form-label small">MFS</label>
+                    <input class="form-control form-control-sm text-end" v-model.number="payments.mfs" type="number" step="0.01" min="0">
                   </div>
                 </div>
               </div>
@@ -323,7 +417,7 @@ function saveHeader() { localStorage.setItem('posReceiptHeader', JSON.stringify(
           <hr class="pos-hr">
           <div class="pos-line" v-if="Number(payments.cash || 0) > 0"><span>Cash</span><span>{{ fmt(payments.cash) }} {{ header.currency }}</span></div>
           <div class="pos-line" v-if="Number(payments.card || 0) > 0"><span>Card</span><span>{{ fmt(payments.card) }} {{ header.currency }}</span></div>
-          <div class="pos-line" v-if="Number(payments.mobile || 0) > 0"><span>Mobile</span><span>{{ fmt(payments.mobile) }} {{ header.currency }}</span></div>
+          <div class="pos-line" v-if="Number(payments.mfs || 0) > 0"><span>MFS</span><span>{{ fmt(payments.mfs) }} {{ header.currency }}</span></div>
           <div class="pos-line"><span>Paid</span><span>{{ fmt(totals.paid) }} {{ header.currency }}</span></div>
           <div class="pos-line" v-if="totals.change > 0"><span>Change</span><span>{{ fmt(totals.change) }} {{ header.currency }}</span></div>
           <div class="pos-line" v-if="totals.due > 0"><span>Due</span><span>{{ fmt(totals.due) }} {{ header.currency }}</span></div>
