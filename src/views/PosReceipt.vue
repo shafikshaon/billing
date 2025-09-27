@@ -152,12 +152,72 @@ function toWords(num) {
 const amountInWords = computed(() => toWords(totals.value.total) + ' only')
 function fmt(n) { return Number(n || 0).toFixed(2) }
 
-// Print (native dialog, same page)
+// Print using a hidden iframe for reliable rendering and print dialog
 function printReceipt() {
-  document.body.classList.add('pos-print')
-  const cleanup = () => document.body.classList.remove('pos-print')
-  window.addEventListener('afterprint', cleanup, { once: true })
-  nextTick(() => setTimeout(() => { try { window.print() } finally { setTimeout(cleanup, 1000) } }, 50))
+  const src = document.querySelector('.pos-receipt')
+  if (!src) return
+
+  // Clone the already-rendered receipt DOM
+  const clone = src.cloneNode(true)
+  clone.removeAttribute('aria-hidden')
+
+  // Create a hidden iframe
+  const iframe = document.createElement('iframe')
+  iframe.style.position = 'fixed'
+  iframe.style.right = '0'
+  iframe.style.bottom = '0'
+  iframe.style.width = '0'
+  iframe.style.height = '0'
+  iframe.style.border = '0'
+  document.body.appendChild(iframe)
+
+  const doc = iframe.contentDocument || iframe.contentWindow?.document
+  if (!doc) { document.body.removeChild(iframe); return }
+
+  // Write the printable document
+  doc.open()
+  doc.write(`
+    <html>
+      <head>
+        <meta charset="utf-8"/>
+        <title>${header.shopName ? header.shopName + ' - ' : ''}Receipt ${receipt.number}</title>
+        <style>
+          @page { size: 80mm auto; margin: 0; }
+          html, body { margin: 0; padding: 0; background: #fff; }
+          * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .pos-receipt { display: block; width: 80mm; padding: 4mm 3mm 8mm; box-sizing: border-box; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; color:#000; }
+          .pos-receipt .center { text-align: center; }
+          .pos-receipt .title { font-weight: 700; letter-spacing: .5px; }
+          .pos-receipt .small { font-size: 11px; }
+          .pos-receipt .muted { color: #444; }
+          .pos-receipt .pos-line { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+          .pos-receipt .pos-items { width: 100%; border-collapse: collapse; font-size: 12px; }
+          .pos-receipt .pos-items th, .pos-receipt .pos-items td { padding: 2px 0; }
+          .pos-receipt .pos-items .sl { width: 18px; }
+          .pos-receipt .pos-items .desc .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 52mm; }
+          .pos-receipt .pos-items .amt { text-align: right; white-space: nowrap; }
+          .pos-receipt .pos-hr { border: 0; border-top: 1px dashed #000; margin: 6px 0; }
+          .pos-receipt .pos-totals .grand { font-weight: 700; }
+          @media print { .no-print { display: none !important; } }
+        </style>
+      </head>
+      <body></body>
+    </html>
+  `)
+  doc.close()
+
+  // Inject the cloned receipt and print
+  doc.body.appendChild(clone)
+
+  const win = iframe.contentWindow
+  const cleanup = () => setTimeout(() => { document.body.removeChild(iframe) }, 0)
+  const doPrint = () => { try { win.focus(); win.print(); } finally { cleanup() } }
+
+  if (doc.readyState === 'complete') {
+    setTimeout(doPrint, 80)
+  } else {
+    win.addEventListener('load', () => setTimeout(doPrint, 80))
+  }
 }
 
 // Helpers
