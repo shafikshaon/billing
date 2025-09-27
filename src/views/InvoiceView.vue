@@ -118,9 +118,22 @@ async function ensurePdfLibs() {
 function printInvoice() {
   if (!printRef?.value) return
   const html = printRef.value.outerHTML
-  const w = window.open('', '_blank', 'noopener,noreferrer')
-  if (!w) return
-  w.document.write(`
+
+  // Create a hidden iframe to render and print
+  const iframe = document.createElement('iframe')
+  iframe.style.position = 'fixed'
+  iframe.style.right = '0'
+  iframe.style.bottom = '0'
+  iframe.style.width = '0'
+  iframe.style.height = '0'
+  iframe.style.border = '0'
+  document.body.appendChild(iframe)
+
+  const doc = iframe.contentDocument || iframe.contentWindow?.document
+  if (!doc) { document.body.removeChild(iframe); return }
+
+  doc.open()
+  doc.write(`
     <html>
       <head>
         <meta charset="utf-8"/>
@@ -128,11 +141,12 @@ function printInvoice() {
         <link rel="stylesheet" href="https://bootswatch.com/5/pulse/bootstrap.min.css"/>
         <style>
           @page { size: A4; margin: 10mm; }
-          body { background:#fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; }
-          .print-area { width: 190mm; margin: 0 auto; padding: 10mm; border: none; }
+          html, body { margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          /* Keep content within the printable area (190mm after margins) */
+          .print-area { width: auto; max-width: 190mm; margin: 0 auto; border: none; }
           .print-area h4 { font-size: 20px; color: #4a148c; }
           .print-area table { font-size: 12px; }
-          /* Make print look like the detail view */
+          /* Match the detail view styling */
           .table td, .table th { vertical-align: middle; }
           .info-block { border: 1px solid rgba(0,0,0,.08); border-radius: .5rem; padding: .5rem .75rem; background: #fafafa; }
           .muted-label { font-size: .72rem; letter-spacing: .08em; color: #6c757d; }
@@ -141,23 +155,20 @@ function printInvoice() {
           .totals-card .grand { font-weight: 700; }
         </style>
       </head>
-      <body>
-        ${html}
-        <script>
-          window.addEventListener('load', function(){
-            setTimeout(function(){
-              try { window.focus(); window.print(); } finally { window.close(); }
-            }, 150);
-          });
-        <\/script>
-      </body>
+      <body>${html}</body>
     </html>
   `)
-  w.document.close()
-  // Fallback print trigger in case the inline onload is delayed or blocked
-  try { w.focus() } catch (e) {}
-  const triggerPrint = () => setTimeout(() => { try { w.focus(); w.print(); } catch (_) {} }, 250)
-  if (w.document.readyState === 'complete') { triggerPrint() } else { w.addEventListener('load', triggerPrint) }
+  doc.close()
+
+  const win = iframe.contentWindow
+  const cleanup = () => setTimeout(() => { document.body.removeChild(iframe) }, 0)
+  const doPrint = () => { try { win.focus(); win.print(); } finally { cleanup() } }
+
+  if (doc.readyState === 'complete') {
+    setTimeout(doPrint, 150)
+  } else {
+    win.addEventListener('load', () => setTimeout(doPrint, 150))
+  }
 }
 
 function printReceipt() {
