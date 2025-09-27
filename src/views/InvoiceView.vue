@@ -132,6 +132,13 @@ function printInvoice() {
           .print-area { width: 190mm; margin: 0 auto; padding: 10mm; border: none; }
           .print-area h4 { font-size: 20px; color: #4a148c; }
           .print-area table { font-size: 12px; }
+          /* Make print look like the detail view */
+          .table td, .table th { vertical-align: middle; }
+          .info-block { border: 1px solid rgba(0,0,0,.08); border-radius: .5rem; padding: .5rem .75rem; background: #fafafa; }
+          .muted-label { font-size: .72rem; letter-spacing: .08em; color: #6c757d; }
+          .totals-card { border: 1px solid rgba(0,0,0,.08); border-radius: .5rem; padding: .5rem .75rem; min-width: 160px; }
+          .totals-card .line { display: flex; justify-content: space-between; }
+          .totals-card .grand { font-weight: 700; }
         </style>
       </head>
       <body>
@@ -147,6 +154,10 @@ function printInvoice() {
     </html>
   `)
   w.document.close()
+  // Fallback print trigger in case the inline onload is delayed or blocked
+  try { w.focus() } catch (e) {}
+  const triggerPrint = () => setTimeout(() => { try { w.focus(); w.print(); } catch (_) {} }, 250)
+  if (w.document.readyState === 'complete') { triggerPrint() } else { w.addEventListener('load', triggerPrint) }
 }
 
 function printReceipt() {
@@ -164,8 +175,9 @@ function printReceipt() {
   }, 50)
 }
 
+// Generate a selectable-text A4 PDF that mirrors the invoice view using pdfMake
 async function downloadPdf() {
-  if (!printRef?.value || !invoice.value) return
+  if (!invoice.value) return
 
   async function ensurePdfMake() {
     if (!window.pdfMake) {
@@ -179,6 +191,7 @@ async function downloadPdf() {
   const inv = invoice.value
   const merch = merchant.value
   const cust = customer.value
+
   function discText(it) {
     return (it.discountType||'none')==='percent'
       ? `-${Number(it.discountValue||0).toFixed(0)}%`
@@ -186,76 +199,151 @@ async function downloadPdf() {
         ? `- ${(Number(it.discountValue||0)*Number(it.qty||0)).toFixed(2)}`
         : '—'
   }
-  const body = [
-    [{ text: 'Product / Description', bold: true }, { text: 'Qty', alignment: 'right', bold: true }, { text: 'Unit', alignment: 'right', bold: true }, { text: 'Discount', alignment: 'right', bold: true }, { text: 'Line', alignment: 'right', bold: true }],
-    ...(inv.items||[]).map(it => [
+
+  const itemsBody = [
+    [
+      { text: 'Product / Description', bold: true },
+      { text: 'Qty', alignment: 'right', bold: true },
+      { text: 'Unit', alignment: 'right', bold: true },
+      { text: 'Discount', alignment: 'right', bold: true },
+      { text: 'Line', alignment: 'right', bold: true }
+    ],
+    ...(inv.items || []).map(it => [
       productById(it.productId)?.name || it.description || '—',
-      { text: String(it.qty||0), alignment: 'right' },
-      { text: (Number(it.unitPrice||0)).toFixed(2), alignment: 'right' },
+      { text: String(it.qty || 0), alignment: 'right' },
+      { text: (Number(it.unitPrice || 0)).toFixed(2), alignment: 'right' },
       { text: discText(it), alignment: 'right' },
       { text: lineNet(it).toFixed(2), alignment: 'right' }
     ])
   ]
-  const scheduleRows = [] // keep simple; detail view may not need schedule
+
+  const totalsStack = [
+    { text: `Subtotal: ${totals.value.sub.toFixed(2)}` },
+    { text: `Tax: ${totals.value.tax.toFixed(2)}` },
+  ]
+
+  // Shipping logic (including "free" scenario)
+  const shippingFree = !!inv.shippingFree
+  const shippingAmount = Number(inv.shippingAmount ?? inv.shippingFee ?? 0)
+  if (shippingFree) {
+    totalsStack.push({ text: `Shipping: 0.00 (free)`, color: '#6c757d' })
+  } else {
+    totalsStack.push({ text: `Shipping: ${totals.value.shipping.toFixed(2)}` })
+  }
+  totalsStack.push({ text: `Total: ${totals.value.total.toFixed(2)}`, bold: true })
+
+  const credits = Number(creditsTotal.value || 0)
+  if (credits > 0) totalsStack.push({ text: `Credits: -${credits.toFixed(2)}` })
+  const received = Number(inv.receivedAmount || 0)
+  const change = Number(inv.changeAmount || 0)
+  if (received > 0) totalsStack.push({ text: `Received: ${received.toFixed(2)}` })
+  if (change > 0) totalsStack.push({ text: `Change: ${change.toFixed(2)}` })
+  const balanceDue = Math.max(0, totals.value.total - credits - received)
+  if (received > 0 || credits > 0 || inv.paidInFull) {
+    totalsStack.push({ text: `Balance Due: ${balanceDue.toFixed(2)}`, bold: true })
+  }
+  if (shippingMethod.value?.name) {
+    totalsStack.push({ text: `Shipping via ${shippingMethod.value.name}`, color: '#6c757d', fontSize: 9, margin: [0,4,0,0] })
+  }
+
+  const content = [
+    {
+      columns: [
+        [
+          { text: merch?.name || '', bold: true, fontSize: 12 },
+          merch?.addresses?.length
+            ? { text: `${merch.addresses[0].line1}, ${merch.addresses[0].city}` }
+            : {},
+          merch?.taxId ? { text: `VAT/TAX ID: ${merch.taxId}`, color: '#6c757d', fontSize: 9 } : {},
+          merchantSelectedContact.value
+            ? { text: `${merchantSelectedContact.value.name || ''}${merchantSelectedContact.value.email ? ' · ' + merchantSelectedContact.value.email : ''}${merchantSelectedContact.value.phone ? ' · ' + merchantSelectedContact.value.phone : ''}`, color: '#6c757d', fontSize: 9 }
+            : {}
+        ],
+        {
+          width: 'auto',
+          alignment: 'right',
+          stack: [
+            { text: 'Invoice', style: 'title' },
+            { text: `No: ${inv.number}`, bold: true },
+            { text: `Date: ${inv.date}` },
+            { text: `Due: ${inv.dueDate}` }
+          ]
+        }
+      ]
+    },
+    { text: ' ', margin: [0,6] },
+    { text: 'BILL TO', color: '#6c757d', fontSize: 9, letterSpacing: 0.5 },
+    { text: cust?.name || '', bold: true },
+    cust?.addresses?.length ? { text: `${cust.addresses[0].line1}, ${cust.addresses[0].city}` } : {},
+    cust?.taxId ? { text: `VAT/TAX ID: ${cust.taxId}`, color: '#6c757d', fontSize: 9 } : {},
+    customerSelectedContact.value
+      ? { text: `${customerSelectedContact.value.name || ''}${customerSelectedContact.value.email ? ' · ' + customerSelectedContact.value.email : ''}${customerSelectedContact.value.phone ? ' · ' + customerSelectedContact.value.phone : ''}`, color: '#6c757d', fontSize: 9 }
+      : {},
+    { text: ' ', margin: [0,6] },
+    {
+      table: { headerRows: 1, widths: ['*', 40, 50, 55, 60], body: itemsBody },
+      layout: 'lightHorizontalLines'
+    },
+    {
+      columns: [
+        { text: ' ' },
+        { width: 200, alignment: 'right', stack: totalsStack }
+      ],
+      margin: [0, 8, 0, 0]
+    }
+  ]
+
+  // Payment schedule (conditional)
+  if (paymentTerm.value && !inv.paidInFull && (scheduleRows.value || []).length) {
+    content.push(
+      { text: ' ', margin: [0,6] },
+      { text: `Payment Schedule — ${paymentTerm.value.name}`, bold: true },
+      {
+        table: {
+          headerRows: 1,
+          widths: ['*', 80, 70],
+          body: [
+            [{ text: 'Installment', bold: true }, { text: 'Date', bold: true }, { text: 'Amount', bold: true, alignment: 'right' }],
+            ...(scheduleRows.value).map(r => [ r[0], r[1], { text: Number(r[2]).toFixed(2), alignment: 'right' } ])
+          ]
+        },
+        layout: 'lightHorizontalLines',
+        margin: [0, 4, 0, 0]
+      }
+    )
+  }
+
+  // Terms and Notes
+  if ((termsTpl.value?.content || '').trim()) {
+    content.push(
+      { text: ' ', margin: [0,8] },
+      { text: 'Terms', bold: true },
+      { text: termsTpl.value.content, margin: [0,2,0,0] }
+    )
+  }
+  if ((inv.notes || '').trim()) {
+    content.push(
+      { text: ' ', margin: [0,6] },
+      { text: 'Notes', bold: true },
+      { text: inv.notes, margin: [0,2,0,0] }
+    )
+  }
 
   const docDefinition = {
     pageSize: 'A4',
     pageMargins: [28, 28, 28, 28],
-    content: [
-      {
-        columns: [
-          [
-            { text: merch?.name || '', bold: true },
-            { text: merch?.addresses?.length ? `${merch.addresses[0].line1}, ${merch.addresses[0].city}` : '' },
-            merch?.taxId ? { text: `VAT/TAX ID: ${merch.taxId}`, color: '#6c757d', fontSize: 9 } : {}
-          ],
-          [
-            { text: 'Invoice', style: 'title', alignment: 'right' },
-            { text: `No: ${inv.number}`, bold: true, alignment: 'right' },
-            { text: `Date: ${inv.date}`, alignment: 'right' },
-            { text: `Due: ${inv.dueDate}`, alignment: 'right' }
-          ]
-        ]
-      },
-      { text: ' ', margin: [0,6] },
-      { text: 'Bill To', bold: true },
-      { text: cust?.name || '' },
-      { text: cust?.addresses?.length ? `${cust.addresses[0].line1}, ${cust.addresses[0].city}` : '' },
-      { text: ' ', margin: [0,6] },
-      {
-        table: { headerRows: 1, widths: ['*', 40, 50, 55, 60], body },
-        layout: 'lightHorizontalLines'
-      },
-      {
-        columns: [
-          { text: ' ' },
-          {
-            width: 180,
-            alignment: 'right',
-            stack: [
-              { text: `Subtotal: ${totals.value.sub.toFixed(2)}` },
-              { text: `Tax: ${totals.value.tax.toFixed(2)}` },
-              { text: `Shipping: ${totals.value.shipping.toFixed(2)}` },
-              { text: `Total: ${totals.value.total.toFixed(2)}`, bold: true }
-            ]
-          }
-        ],
-        margin: [0, 8, 0, 0]
-      }
-    ],
+    content,
     footer: (currentPage, pageCount) => ({
       margin: [28, 8, 28, 16],
       fontSize: 9,
-      text: [
-        (termsTpl.value?.content || '').trim(),
-        store.settings?.invoice?.footerText ? ('\n' + store.settings.invoice.footerText) : ''
-      ].join('')
+      text: store.settings?.invoice?.footerText || ''
     }),
     styles: {
       title: { fontSize: 18, color: '#4a148c', bold: true }
     },
     defaultStyle: { fontSize: 10 }
   }
+
   window.pdfMake.createPdf(docDefinition).download(`invoice_${inv.number || 'view'}.pdf`)
 }
 
