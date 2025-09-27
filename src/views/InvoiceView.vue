@@ -445,11 +445,111 @@ function editInvoice() {
           <div class="center small" style="margin-top:6px">Thank you!</div>
         </div>
 
+
+        <!-- Hidden POS receipt; will be revealed only during print -->
+        <div class="pos-receipt" aria-hidden="true">
+          <div class="pos-head center">
+            <div class="title">{{ merchant?.name }}</div>
+            <div class="small muted" v-if="merchantSelectedAddress">{{ merchantSelectedAddress.line1 }}, {{ merchantSelectedAddress.city }}</div>
+            <div class="small muted" v-if="merchant?.taxId">VAT/TAX: {{ merchant.taxId }}</div>
+          </div>
+
+          <hr class="pos-hr" />
+          <div class="center title">TAX INVOICE</div>
+          <div class="pos-line small"><span>No:</span><span>{{ invoice?.number }}</span></div>
+          <div class="pos-line small"><span>Date:</span><span>{{ invoice?.date }}</span></div>
+          <div class="pos-line small" v-if="customer?.name"><span>Customer:</span><span>{{ customer.name }}</span></div>
+
+          <hr class="pos-hr" />
+
+          <table class="pos-items">
+            <thead>
+              <tr>
+                <th class="sl">SL</th>
+                <th>Item Description</th>
+                <th class="amt">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(it, idx) in invoice.items" :key="it.id">
+                <td class="sl">{{ String(idx+1).padStart(2,'0') }}</td>
+                <td class="desc">
+                  <div class="nm">{{ productById(it.productId)?.name || it.description || '—' }}</div>
+                  <div class="muted small">{{ Number(it.qty||0) }} x {{ Number(it.unitPrice||0).toFixed(2) }}</div>
+                </td>
+                <td class="amt">{{ lineNet(it).toFixed(2) }}</td>
+              </tr>
+              <tr v-if="!invoice.items || !invoice.items.length"><td colspan="3" class="small muted">No items</td></tr>
+            </tbody>
+          </table>
+
+          <hr class="pos-hr" />
+
+          <div class="pos-totals">
+            <div class="pos-line"><span>Subtotal</span><span>{{ totals.sub.toFixed(2) }}</span></div>
+            <div class="pos-line"><span>VAT</span><span>{{ totals.tax.toFixed(2) }}</span></div>
+            <div class="pos-line" v-if="totals.shipping > 0"><span>Shipping</span><span>{{ totals.shipping.toFixed(2) }}</span></div>
+            <div class="pos-line grand"><span>Net Amount</span><span>{{ totals.total.toFixed(2) }}</span></div>
+            <div class="pos-line" v-if="creditsTotal > 0"><span>Credits</span><span>-{{ creditsTotal.toFixed(2) }}</span></div>
+            <div class="pos-line" v-if="invoice.paidInFull || Number(invoice.receivedAmount||0) > 0"><span>Received</span><span>{{ Number(invoice.receivedAmount||0).toFixed(2) }}</span></div>
+            <div class="pos-line" v-if="Number(invoice.changeAmount||0) > 0"><span>Change</span><span>{{ Number(invoice.changeAmount||0).toFixed(2) }}</span></div>
+            <div class="pos-line" v-if="invoice.paidInFull || Number(invoice.receivedAmount||0) > 0 || creditsTotal>0"><span>Balance</span><span>{{ Math.max(0, totals.total - creditsTotal - Number(invoice.receivedAmount||0)).toFixed(2) }}</span></div>
+          </div>
+
+          <hr class="pos-hr" />
+
+          <div class="small muted" v-if="shippingMethod">Shipping via {{ shippingMethod?.name }}</div>
+          <div class="small muted">Prices inclusive of VAT where applicable.</div>
+          <div class="center small muted" v-if="store.settings?.invoice?.footerText" style="margin-top:4px;">{{ store.settings.invoice.footerText }}</div>
+          <div class="center small" style="margin-top:6px">Thank you!</div>
+        </div>
+
       </SectionCard>
     </div>
   </div>
   <div v-else class="text-muted">Invoice not found.</div>
 </template>
+
+<style>
+/* POS receipt base (hidden on screen) */
+.pos-receipt { display: none; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; color: #000; }
+.pos-receipt .center { text-align: center; }
+.pos-receipt .title { font-weight: 700; letter-spacing: .5px; }
+.pos-receipt .small { font-size: 11px; }
+.pos-receipt .muted { color: #444; }
+.pos-receipt .pos-line { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.pos-receipt .pos-items { width: 100%; border-collapse: collapse; font-size: 12px; }
+.pos-receipt .pos-items th, .pos-receipt .pos-items td { padding: 2px 0; }
+.pos-receipt .pos-items .sl { width: 18px; }
+.pos-receipt .pos-items .desc .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 52mm; }
+.pos-receipt .pos-items .amt { text-align: right; white-space: nowrap; }
+.pos-receipt .pos-hr { border: 0; border-top: 1px dashed #000; margin: 6px 0; }
+.pos-receipt .pos-totals .grand { font-weight: 700; }
+
+/* Print-only rules for POS mode */
+@media print {
+  body.pos-print { margin: 0 !important; padding: 0 !important; }
+  @page { size: 80mm auto; margin: 0; }
+
+  /* Hide everything by default when printing in POS mode */
+  body.pos-print * { visibility: hidden !important; }
+
+  /* Show only the receipt */
+  body.pos-print .pos-receipt,
+  body.pos-print .pos-receipt * { visibility: visible !important; }
+
+  /* Ensure layout and dimensions for receipt */
+  body.pos-print .pos-receipt {
+    display: block !important;
+    position: fixed;
+    left: 0; top: 0;
+    width: 80mm;
+    padding: 4mm 3mm 8mm;
+    box-sizing: border-box;
+    background: #fff;
+  }
+}
+</style>
 
 <style>
 /* POS receipt base (hidden on screen) */

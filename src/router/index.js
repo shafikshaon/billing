@@ -25,6 +25,10 @@ const Invoices = () => import('../views/Invoices.vue')
 const InvoiceView = () => import('../views/InvoiceView.vue')
 const Settings = () => import('../views/Settings.vue')
 
+const StandalonePosReceipt = () => import('../views/PosReceipt.vue')
+
+const PosReceipt = () => import('../views/PosReceipt.vue')
+
 // Credit Notes
 const CreditNotesList = () => import('../views/CreditNotesList.vue')
 const CreditNotes = () => import('../views/CreditNotes.vue')
@@ -79,6 +83,12 @@ const router = createRouter({
     { path: '/invoices/new', name: 'New Invoice', component: Invoices, meta: { icon: '🧾', hidden: true } },
     { path: '/invoices/:id', name: 'Invoice', component: InvoiceView, meta: { icon: '🧾', hidden: true } },
     { path: '/invoices/:id/edit', name: 'Edit Invoice', component: Invoices, meta: { icon: '🧾', hidden: true } },
+
+    // Standalone POS Receipt
+    { path: '/receipt', name: 'POS Receipt', component: PosReceipt, meta: { icon: '🧾' } },
+
+    // Standalone POS Receipt
+    { path: '/receipt', name: 'POS Receipt', component: StandalonePosReceipt, meta: { icon: '' } },
 
     // Credit Notes
     { path: '/credit-notes', name: 'Credit Notes', component: CreditNotesList, meta: { icon: '↩️' } },
