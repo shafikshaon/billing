@@ -1,5 +1,33 @@
 # billing
+# Billing App
 
+A modern, single‑page billing and invoicing application with customer, product, tax, payment terms, shipping, invoices, credit notes, and settings management.
+
+Live demo: https://billing.shafik.xyz/
+
+## Overview
+
+- Manage merchants, customers, products, taxes, payment terms, shipping methods
+- Create, edit, and view invoices and credit notes
+- POS-style receipt view
+- Dashboard and settings
+- Clean, route-driven UX with lazy-loaded views for performance
+
+## Tech Stack
+
+- Frontend: Vue 3.5.18
+- Router: vue-router 4.4.5 (history mode)
+- Build tool: Vite 7.0.6
+- Plugins: @vitejs/plugin-vue 6.0.1, vite-plugin-vue-devtools 8.0.0
+- Package manager: npm
+
+## Getting Started
+
+Prerequisites:
+- Node.js 20+ (per package.json engines)
+- npm
+
+Install dependencies:
 This template should help get you started developing with Vue 3 in Vite.
 
 ## Recommended IDE Setup
