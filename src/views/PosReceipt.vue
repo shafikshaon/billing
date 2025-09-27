@@ -31,11 +31,12 @@ const receipt = reactive({
   note: '',
 })
 
-// Payments (Cash, Card, MFS)
+// Payments (Cash, Card, MFS + reference)
 const payments = reactive({
   cash: 0,
   card: 0,
   mfs: 0,
+  ref: ''
 })
 
 // Items
@@ -104,10 +105,17 @@ function onProductChange(it) {
 // Math
 function lineBase(it) { return (Number(it.qty) || 0) * (Number(it.unitPrice) || 0) }
 function lineDiscount(it) {
+  const base = lineBase(it)
   const t = it.discountType || 'none'
-  const v = Number(it.discountValue) || 0
-  if (t === 'percent') return lineBase(it) * v / 100
-  if (t === 'fixed') return (Number(it.qty) || 0) * v
+  let v = Number(it.discountValue) || 0
+  if (t === 'percent') {
+    v = Math.min(100, Math.max(0, v))
+    return base * v / 100
+  }
+  if (t === 'fixed') {
+    const disc = (Number(it.qty) || 0) * Math.max(0, v)
+    return Math.min(base, disc)
+  }
   return 0
 }
 function lineNet(it) { return Math.max(0, lineBase(it) - lineDiscount(it)) }
@@ -115,7 +123,7 @@ function lineTax(it) { return lineNet(it) * (Number(it.taxRate) || 0) / 100 }
 
 const totals = computed(() => {
   const disc = items.value.reduce((s, it) => s + lineDiscount(it), 0)
-  const sub = items.value.reduce((s, it) => s + lineBase(it), 0) - disc
+  const sub = items.value.reduce((s, it) => s + lineNet(it), 0) // sum net amounts
   const tax = items.value.reduce((s, it) => s + lineTax(it), 0)
   const total = Math.max(0, sub + tax)
   const paid = Number(payments.cash || 0) + Number(payments.card || 0) + Number(payments.mfs || 0)
@@ -334,9 +342,13 @@ const cashierSuggestions = [
                     <label class="form-label small">Card</label>
                     <input class="form-control form-control-sm text-end" v-model.number="payments.card" type="number" step="0.01" min="0">
                   </div>
-                  <div>
+                  <div class="mb-2">
                     <label class="form-label small">MFS</label>
                     <input class="form-control form-control-sm text-end" v-model.number="payments.mfs" type="number" step="0.01" min="0">
+                  </div>
+                  <div>
+                    <label class="form-label small">Payment Ref</label>
+                    <input class="form-control form-control-sm" v-model="payments.ref" placeholder="Txn ID / last 4 digits">
                   </div>
                 </div>
               </div>
@@ -418,6 +430,7 @@ const cashierSuggestions = [
           <div class="pos-line" v-if="Number(payments.cash || 0) > 0"><span>Cash</span><span>{{ fmt(payments.cash) }} {{ header.currency }}</span></div>
           <div class="pos-line" v-if="Number(payments.card || 0) > 0"><span>Card</span><span>{{ fmt(payments.card) }} {{ header.currency }}</span></div>
           <div class="pos-line" v-if="Number(payments.mfs || 0) > 0"><span>MFS</span><span>{{ fmt(payments.mfs) }} {{ header.currency }}</span></div>
+          <div class="pos-line" v-if="payments.ref"><span>Payment Ref</span><span>{{ payments.ref }}</span></div>
           <div class="pos-line"><span>Paid</span><span>{{ fmt(totals.paid) }} {{ header.currency }}</span></div>
           <div class="pos-line" v-if="totals.change > 0"><span>Change</span><span>{{ fmt(totals.change) }} {{ header.currency }}</span></div>
           <div class="pos-line" v-if="totals.due > 0"><span>Due</span><span>{{ fmt(totals.due) }} {{ header.currency }}</span></div>
@@ -451,20 +464,22 @@ const cashierSuggestions = [
 
 /* Print-only rules for POS mode */
 @media print {
-  body.pos-print { margin: 0 !important; padding: 0 !important; background: #fff; }
+  /* Force page width to receipt size */
   @page { size: 80mm auto; margin: 0; }
+  html.pos-print, body.pos-print { width: 80mm !important; margin: 0 !important; padding: 0 !important; background: #fff; }
 
   /* Hide everything by default when printing in POS mode */
   body.pos-print * { visibility: hidden !important; }
 
+  /* Show only the receipt */
   body.pos-print .pos-receipt,
   body.pos-print .pos-receipt * { visibility: visible !important; }
 
+  /* Ensure the receipt is laid out at 80mm and not absolutely positioned */
   body.pos-print .pos-receipt {
     display: block !important;
-    position: fixed;
-    left: 0; top: 0;
-    width: 80mm;
+    position: static !important;
+    width: 80mm !important;
     padding: 4mm 3mm 8mm;
     box-sizing: border-box;
     background: #fff;
