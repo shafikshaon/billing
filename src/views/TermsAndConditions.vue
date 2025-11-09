@@ -1,6 +1,7 @@
 <script setup>
 import { reactive } from 'vue'
 import SectionCard from '../components/SectionCard.vue'
+import MarkdownEditor from '../components/MarkdownEditor.vue'
 import { store, uid, removeById } from '../store'
 
 const draft = reactive({ id:'', name:'', content:'' })
@@ -52,7 +53,7 @@ function remove(id){ removeById(store.termsTemplates, id); if(draft.id===id) res
           </div>
           <div class="col-12">
             <label class="form-label">Content</label>
-            <textarea class="form-control" rows="8" v-model="draft.content" placeholder="Write your terms here..."></textarea>
+            <MarkdownEditor v-model="draft.content" :rows="8" placeholder="Write your terms here..." />
           </div>
         </div>
         <div class="d-flex justify-content-end gap-2 mt-2">
