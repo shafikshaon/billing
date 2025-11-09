@@ -62,9 +62,9 @@
       class="form-control font-monospace"
     ></textarea>
 
-    <div v-if="showPreview" class="preview mt-2 p-3 border rounded bg-light">
-      <h6 class="text-muted mb-2">Preview:</h6>
-      <div v-html="renderedHtml"></div>
+    <div v-if="showPreview" class="preview">
+      <h6 class="preview-title">Preview:</h6>
+      <div class="preview-content" v-html="renderedHtml"></div>
     </div>
   </div>
 </template>
@@ -164,16 +164,48 @@ export default {
 </script>
 
 <style scoped>
+.markdown-editor {
+  width: 100%;
+}
+
+.toolbar {
+  margin-bottom: 0.75rem;
+}
+
 .markdown-editor textarea {
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
 }
 
 .toolbar button {
-  min-width: 35px;
+  min-width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .preview {
+  margin-top: 1rem;
+  padding: 1.25rem;
+  background: var(--stripe-gray-50);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
   max-height: 400px;
   overflow-y: auto;
+}
+
+.preview-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  margin-bottom: 0.75rem;
+}
+
+.preview-content {
+  color: var(--text-primary);
+  line-height: 1.6;
 }
 </style>
