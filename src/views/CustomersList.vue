@@ -28,6 +28,7 @@ const pageItems = computed(() => {
 })
 
 function goNew() { router.push('/customers/new') }
+function goBulkImport() { router.push('/customers/bulk-import') }
 function viewRow(c) { router.push(`/customers/${c.id}`) }
 function editRow(c) { router.push(`/customers/${c.id}/edit`) }
 function removeRow(c) {
@@ -47,6 +48,7 @@ function removeRow(c) {
             <button class="btn btn-sm btn-outline-secondary" type="button" @click="sortAsc = !sortAsc">
               Sort {{ sortAsc ? 'A→Z' : 'Z→A' }}
             </button>
+            <button class="btn btn-sm btn-success" type="button" @click="goBulkImport">Bulk Import</button>
             <button class="btn btn-sm btn-primary" type="button" @click="goNew">New</button>
           </div>
         </template>

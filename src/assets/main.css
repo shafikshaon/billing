@@ -12,44 +12,87 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Slim inputs and purple borders */
+/* ========================================
+   PURPLE THEME & COMPACT DESIGN
+   ======================================== */
+
 :root {
   --purple: #6f42c1;
-  --purple-weak: rgba(111, 66, 193, .2);
-}
-.form-control,
-.form-select,
-textarea.form-control {
-  border: 1px solid var(--purple) !important;
-  padding: .375rem .5rem !important;
-  font-size: .875rem !important;
-  border-radius: .5rem;
-}
-.form-control:focus,
-.form-select:focus,
-textarea.form-control:focus {
-  border-color: var(--purple) !important;
-  box-shadow: 0 0 0 .2rem var(--purple-weak) !important;
+  --purple-dark: #5a35a0;
+  --purple-light: #8b5fd9;
 }
 
-/* Slim inputs and purple borders */
-:root {
-  --purple: #6f42c1;
-  --purple-weak: rgba(111, 66, 193, .2);
-}
+/* Compact inputs with 2px purple border and NO shadow */
 .form-control,
 .form-select,
 textarea.form-control {
-  border: 1px solid var(--purple) !important;
-  padding: .375rem .5rem !important;
-  font-size: .875rem !important;
-  border-radius: .5rem;
+  border: 2px solid var(--purple) !important;
+  padding: .25rem .5rem !important;
+  font-size: .85rem !important;
+  border-radius: .375rem;
+  line-height: 1.4;
 }
+
 .form-control:focus,
 .form-select:focus,
 textarea.form-control:focus {
-  border-color: var(--purple) !important;
-  box-shadow: 0 0 0 .2rem var(--purple-weak) !important;
+  border-color: var(--purple-dark) !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.form-control-sm {
+  padding: .125rem .375rem !important;
+  font-size: .8rem !important;
+}
+
+/* Compact buttons */
+.btn {
+  padding: .35rem .75rem;
+  font-size: .85rem;
+}
+
+.btn-sm {
+  padding: .25rem .5rem;
+  font-size: .8rem;
+}
+
+/* Compact cards */
+.card {
+  border: 2px solid var(--purple);
+  margin-bottom: 1rem;
+}
+
+.card-header {
+  padding: .5rem 1rem;
+  background: var(--purple) !important;
+  color: white !important;
+  border-bottom: 2px solid var(--purple-dark);
+  font-size: .9rem;
+}
+
+.card-body {
+  padding: 1rem;
+}
+
+/* Compact tables */
+.table {
+  font-size: .85rem;
+}
+
+.table-sm > :not(caption) > * > * {
+  padding: .35rem .5rem;
+}
+
+/* Compact spacing */
+.container-fluid {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.row.g-3 {
+  --bs-gutter-x: 1rem;
+  --bs-gutter-y: 1rem;
 }
 
 /* Invoice preview (screen) */
@@ -58,15 +101,21 @@ textarea.form-control:focus {
   color: #222;
   padding: 24px;
   border-radius: 8px;
-  border: 1px solid rgba(0,0,0,.075);
+  border: 2px solid var(--purple);
 }
-.print-area h4 { font-size: 18px; font-weight: 700; color: #4a148c; }
+
+.print-area h4 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--purple-dark);
+}
+
 .print-area table { font-size: 12px; }
 .print-area .totals { font-weight: 600; }
 
 /* A4-friendly sizes when exporting or printing */
 .print-area.pdf-mode {
-  width: 190mm;           /* A4 width minus 10mm margins each side */
+  width: 190mm;
   margin: 0 auto;
   padding: 10mm;
   font-size: 12px;
@@ -74,8 +123,9 @@ textarea.form-control:focus {
   border: 1px solid #eee;
   display: flex;
   flex-direction: column;
-  min-height: 277mm;      /* A4 height minus 2x10mm margins */
+  min-height: 277mm;
 }
+
 .print-area.pdf-mode h4 { font-size: 20px; }
 .print-area.pdf-mode table { font-size: 12px; }
 
@@ -87,9 +137,11 @@ textarea.form-control:focus {
 .print-area table.table > :not(caption) > * > * {
   padding: 6px 8px;
 }
+
 .print-area table.table thead th {
   border-bottom: 1px solid #ddd;
 }
+
 .print-area table.table tbody td {
   border-bottom: 1px solid #f0f0f0;
 }
@@ -111,29 +163,31 @@ textarea.form-control:focus {
   .print-area .invoice-terms { margin-top: auto; }
 }
 
-.print-area{
-    font-size: 0.7rem;
+.print-area {
+  font-size: 0.7rem;
 }
 
 /* ---- Invoice form UX helpers ---- */
-.subsection-title{
+.subsection-title {
   font-size: .8rem;
   font-weight: 700;
-  color: #4a148c;
+  color: var(--purple-dark);
   letter-spacing: .02em;
   text-transform: uppercase;
   margin: .25rem 0 .25rem;
 }
 
-.form-sticky-actions{
+.form-sticky-actions {
   position: sticky;
   bottom: -1px;
   z-index: 20;
   background: #ffffffcc;
   backdrop-filter: blur(3px);
-  border-top: 1px solid rgba(0,0,0,.06);
+  border-top: 2px solid var(--purple);
+  padding: .75rem 1rem;
 }
-.form-sticky-actions .badge{
+
+.form-sticky-actions .badge {
   background: #f8f9fa;
   color: #333;
   border: 1px solid rgba(0,0,0,.06);
@@ -141,22 +195,34 @@ textarea.form-control:focus {
 }
 
 /* --- Invoice visual refresh --- */
-.invoice-header h4 { color:#4a148c; font-weight:700; }
+.invoice-header h4 {
+  color: var(--purple-dark);
+  font-weight: 700;
+}
+
 .invoice-brand strong { font-size: 1rem; }
-.muted-label { text-transform: uppercase; letter-spacing: .03em; font-size: .7rem; color: #6c757d; }
+
+.muted-label {
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  font-size: .7rem;
+  color: #6c757d;
+}
 
 .info-block {
   background: #f8f9fa;
-  border: 1px solid rgba(0,0,0,.06);
-  border-radius: .5rem;
+  border: 2px solid var(--purple);
+  border-radius: .375rem;
   padding: .5rem .75rem;
 }
+
 .info-block .fw-semibold { font-size: .95rem; }
 
 .table-invoice thead th {
   background: #faf7ff;
-  border-bottom: 1px solid #e6dcff !important;
+  border-bottom: 2px solid var(--purple) !important;
 }
+
 .table-invoice tbody tr:nth-child(even) td {
   background: #fcfcff;
 }
@@ -165,12 +231,12 @@ textarea.form-control:focus {
   min-width: 240px;
   max-width: 280px;
   background: #fff;
-  border: 1px solid rgba(0,0,0,.08);
-  border-radius: .5rem;
+  border: 2px solid var(--purple);
+  border-radius: .375rem;
   padding: .6rem .8rem;
-  box-shadow: 0 6px 12px rgba(111,66,193,.06);
   font-size: .9rem;
 }
+
 .totals-card .line {
   display: flex;
   justify-content: space-between;
@@ -178,18 +244,24 @@ textarea.form-control:focus {
   gap: .75rem;
   padding: .125rem 0;
 }
+
 .totals-card .grand {
-  border-top: 1px dashed rgba(0,0,0,.15);
+  border-top: 2px solid var(--purple);
   margin-top: .25rem;
   padding-top: .35rem;
   font-weight: 700;
   font-size: 1rem;
+  color: var(--purple-dark);
 }
-.totals-card .muted { color: #6c757d; font-size: .75rem; }
+
+.totals-card .muted {
+  color: #6c757d;
+  font-size: .75rem;
+}
 
 /* Print support: keep borders visible */
 @media print {
   .info-block { background: #fff !important; border-color: #ccc !important; }
   .table-invoice thead th { background: #eee !important; border-color: #ccc !important; }
-  .totals-card { box-shadow: none !important; border-color: #bbb !important; }
+  .totals-card { border-color: #bbb !important; }
 }
