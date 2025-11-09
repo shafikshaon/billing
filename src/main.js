@@ -4,6 +4,9 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 
+// Debug log for deployment verification
+console.log('Billing App initializing...', new Date().toISOString())
+
 // Load Bootstrap via CDN (CSS + JS) before mounting the app
 ;(function ensureBootstrapCdn() {
   // Use Bootswatch Pulse theme (includes Bootstrap CSS)
@@ -23,4 +26,10 @@ import router from './router'
   }
 })()
 
-createApp(App).use(router).mount('#app')
+try {
+  const app = createApp(App).use(router)
+  app.mount('#app')
+  console.log('Billing App mounted successfully')
+} catch (error) {
+  console.error('Error mounting app:', error)
+}
