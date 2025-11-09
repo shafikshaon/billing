@@ -5,10 +5,22 @@
     <title>Billing System</title>
     <script>
       // GitHub Pages SPA redirect workaround
-      // Store the current path and redirect to index.html
-      sessionStorage.redirect = location.href;
+      // This converts the path to a query parameter that index.html can parse
+      (function() {
+        var pathSegmentsToKeep = 1; // Keep 'billing' in the path
+
+        var l = window.location;
+        var repo = l.pathname.split('/')[1];
+
+        l.replace(
+          l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+          '/' + repo + '/?p=/' +
+          l.pathname.split('/').slice(2).join('/').replace(/&/g, '~and~') +
+          (l.search ? '&q=' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+          l.hash
+        );
+      })();
     </script>
-    <meta http-equiv="refresh" content="0;URL='/billing/'">
   </head>
   <body>
   </body>
