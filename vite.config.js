@@ -16,4 +16,16 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  build: {
+    // Ensure proper module resolution for production
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+    // Generate source maps for debugging if needed
+    sourcemap: false,
+    // Ensure assets are properly hashed for cache busting
+    assetsInlineLimit: 4096,
+  },
 })
