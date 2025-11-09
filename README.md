@@ -56,3 +56,33 @@ npm run dev
 ```sh
 npm run build
 ```
+
+## Deployment
+
+The app is automatically deployed to GitHub Pages when changes are pushed to the `main` branch via GitHub Actions workflow.
+
+### Troubleshooting Deployment
+
+If the site shows a white screen:
+
+1. **Check GitHub Pages Settings**:
+   - Go to repository Settings → Pages
+   - Ensure "Source" is set to "GitHub Actions"
+   - Verify the custom domain is configured correctly
+
+2. **Verify Workflow Run**:
+   - Check Actions tab for the latest workflow run
+   - Ensure the deployment completed successfully
+
+3. **Browser Console**:
+   - Open browser DevTools (F12)
+   - Check Console for JavaScript errors
+   - Look for "Billing App initializing..." message
+
+4. **Clear Cache**:
+   - Hard refresh: Ctrl+Shift+R (Windows/Linux) or Cmd+Shift+R (Mac)
+   - Try incognito/private browsing mode
+
+5. **Check DNS**:
+   - Verify CNAME file contains: `billing.shafik.xyz`
+   - Ensure DNS records point to GitHub Pages
