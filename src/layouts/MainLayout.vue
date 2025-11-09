@@ -91,7 +91,7 @@ function onResetClick() {
    ======================================== */
 
 .stripe-sidebar {
-  width: 260px;
+  width: 220px;
   background: var(--card-bg);
   border-right: 1px solid var(--border-color);
   display: flex;
@@ -103,7 +103,7 @@ function onResetClick() {
 }
 
 .sidebar-header {
-  padding: 1.5rem;
+  padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -117,16 +117,16 @@ function onResetClick() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   background: var(--stripe-purple);
-  border-radius: 0.625rem;
+  border-radius: 0.5rem;
   color: white;
   box-shadow: var(--shadow-sm);
 }
 
 .brand-text {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.02em;
@@ -134,21 +134,21 @@ function onResetClick() {
 
 .sidebar-nav {
   flex: 1;
-  padding: 1rem;
+  padding: 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.125rem;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
+  gap: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
   color: var(--text-secondary);
   text-decoration: none;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 500;
   transition: all var(--transition-base);
   position: relative;
@@ -178,8 +178,8 @@ function onResetClick() {
 }
 
 .nav-icon {
-  font-size: 1.125rem;
-  width: 22px;
+  font-size: 1rem;
+  width: 18px;
   text-align: center;
   display: flex;
   align-items: center;
@@ -191,7 +191,7 @@ function onResetClick() {
 }
 
 .sidebar-footer {
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   border-top: 1px solid var(--border-color);
 }
 
@@ -228,11 +228,11 @@ function onResetClick() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.25rem 2rem;
+  padding: 1rem 1.5rem;
 }
 
 .header-title {
-  font-size: 1.5rem;
+  font-size: 1.375rem;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.02em;
@@ -246,7 +246,7 @@ function onResetClick() {
 .main-body {
   flex: 1;
   overflow-y: auto;
-  padding: 2rem;
+  padding: 1.5rem;
 }
 
 /* ========================================
