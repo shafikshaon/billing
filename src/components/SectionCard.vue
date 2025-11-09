@@ -36,14 +36,14 @@ defineProps({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.25rem 1.5rem;
+  padding: 0.875rem 1.125rem;
   background: var(--card-bg);
   border-bottom: 1px solid var(--border-color);
 }
 
 .stripe-card-title {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
@@ -51,11 +51,11 @@ defineProps({
 
 .stripe-card-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.375rem;
   align-items: center;
 }
 
 .stripe-card-body {
-  padding: 1.5rem;
+  padding: 1rem 1.125rem;
 }
 </style>
