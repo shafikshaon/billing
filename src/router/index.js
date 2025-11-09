@@ -40,7 +40,7 @@ const BulkImportCustomers = () => import('../views/BulkImportCustomers.vue')
 const BulkImportProducts = () => import('../views/BulkImportProducts.vue')
 
 const router = createRouter({
-  history: createWebHistory('/billing'),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/', redirect: '/invoices' },
     { path: '/dashboard', name: 'Dashboard', component: Dashboard, meta: { icon: '🏠' } },
