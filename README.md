@@ -4,6 +4,7 @@
 A modern, single‑page billing and invoicing application with customer, product, tax, payment terms, shipping, invoices, credit notes, and settings management.
 
 Live demo: https://billing.shafik.xyz/
+GitHub Pages: https://shafikshaon.github.io/billing/
 
 ## Overview
 
