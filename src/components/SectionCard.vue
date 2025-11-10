@@ -21,8 +21,8 @@ defineProps({
 .stripe-card {
   background: #ffffff;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  margin-bottom: 20px;
+  border-radius: 6px;
+  margin-bottom: 16px;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
   transition: all var(--transition-fast);
   overflow: hidden;
@@ -32,14 +32,14 @@ defineProps({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 12px 16px;
   background: #ffffff;
   border-bottom: 1px solid var(--border-color);
 }
 
 .stripe-card-title {
   margin: 0;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
@@ -47,7 +47,7 @@ defineProps({
 
 .stripe-card-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
 }
 
