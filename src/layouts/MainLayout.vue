@@ -225,12 +225,12 @@ function onResetClick() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
-  min-height: 52px;
+  padding: 10px 16px;
+  min-height: 48px;
 }
 
 .header-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
@@ -245,7 +245,7 @@ function onResetClick() {
 .main-body {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 12px;
 }
 
 /* ========================================
