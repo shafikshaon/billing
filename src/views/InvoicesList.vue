@@ -70,31 +70,33 @@ function edit(i){ router.push(`/invoices/${i.id}/edit`) }
           </div>
         </template>
 
-        <table class="table table-sm align-middle mb-2">
-          <thead class="table-light">
-            <tr>
-              <th>No</th><th>Date</th><th>Customer</th><th>Status</th><th class="text-end">Total (৳)</th><th class="text-end"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="inv in pageItems" :key="inv.id">
-              <td class="fw-medium">{{ inv.number }}</td>
-              <td>{{ inv.date }}</td>
-              <td>{{ store.customers.find(c=>c.id===inv.customerId)?.name }}</td>
-              <td class="text-capitalize">{{ inv.status || 'draft' }}</td>
-              <td class="text-end">{{ invTotal(inv).toFixed(2) }}</td>
-              <td class="text-end">
-                <div class="btn-group btn-group-sm">
-                  <button class="btn btn-outline-secondary" @click="viewRow(inv)">View</button>
-                  <button class="btn btn-outline-secondary" @click="edit(inv)">Edit</button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="pageItems.length===0"><td colspan="6" class="text-muted">No invoices found.</td></tr>
-          </tbody>
-        </table>
+        <div class="table-wrapper">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr>
+                <th>No</th><th>Date</th><th>Customer</th><th>Status</th><th class="text-end">Total (৳)</th><th class="text-end"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="inv in pageItems" :key="inv.id">
+                <td class="fw-medium">{{ inv.number }}</td>
+                <td>{{ inv.date }}</td>
+                <td>{{ store.customers.find(c=>c.id===inv.customerId)?.name }}</td>
+                <td class="text-capitalize">{{ inv.status || 'draft' }}</td>
+                <td class="text-end">{{ invTotal(inv).toFixed(2) }}</td>
+                <td class="text-end">
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-secondary" @click="viewRow(inv)">View</button>
+                    <button class="btn btn-outline-secondary" @click="edit(inv)">Edit</button>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="pageItems.length===0"><td colspan="6" class="text-muted">No invoices found.</td></tr>
+            </tbody>
+          </table>
+        </div>
 
-        <div class="d-flex justify-content-between align-items-center">
+        <div class="table-footer">
           <div class="small text-muted">Page {{ page }} of {{ totalPages }}</div>
           <div class="btn-group btn-group-sm">
             <button class="btn btn-outline-secondary" :disabled="page<=1" @click="page--">Prev</button>

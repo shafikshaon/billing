@@ -59,36 +59,38 @@ function fmtDiscount(p) {
           </div>
         </template>
 
-        <table class="table table-sm align-middle mb-2">
-          <thead class="table-light">
-            <tr><th>Name</th><th>Unit</th><th>Type</th><th>Price</th><th>Discount</th><th>Tax</th><th class="text-end"></th></tr>
-          </thead>
-          <tbody>
-            <tr v-for="p in pageItems" :key="p.id">
-              <td class="fw-medium">{{ p.name }}</td>
-              <td class="text-uppercase">{{ p.unit }}</td>
-              <td class="text-capitalize">{{ p.type }}</td>
-              <td>{{ Number(p.price||0).toFixed(2) }}</td>
-              <td>{{ fmtDiscount(p) }}</td>
-              <td>
-                <span v-if="p.taxId">{{ store.taxes.find(t=>t.id===p.taxId)?.name }} ({{ store.taxes.find(t=>t.id===p.taxId)?.rate }}%)</span>
-                <span v-else class="text-muted">None</span>
-              </td>
-              <td class="text-end">
-                <div class="btn-group btn-group-sm">
-                  <button class="btn btn-outline-secondary" @click="viewRow(p)">View</button>
-                  <button class="btn btn-outline-secondary" @click="editRow(p)">Edit</button>
-                  <button class="btn btn-outline-danger" @click="removeRow(p)">Delete</button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="pageItems.length===0">
-              <td colspan="7" class="text-muted">No products found.</td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-wrapper">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr><th>Name</th><th>Unit</th><th>Type</th><th>Price</th><th>Discount</th><th>Tax</th><th class="text-end"></th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="p in pageItems" :key="p.id">
+                <td class="fw-medium">{{ p.name }}</td>
+                <td class="text-uppercase">{{ p.unit }}</td>
+                <td class="text-capitalize">{{ p.type }}</td>
+                <td>{{ Number(p.price||0).toFixed(2) }}</td>
+                <td>{{ fmtDiscount(p) }}</td>
+                <td>
+                  <span v-if="p.taxId">{{ store.taxes.find(t=>t.id===p.taxId)?.name }} ({{ store.taxes.find(t=>t.id===p.taxId)?.rate }}%)</span>
+                  <span v-else class="text-muted">None</span>
+                </td>
+                <td class="text-end">
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-secondary" @click="viewRow(p)">View</button>
+                    <button class="btn btn-outline-secondary" @click="editRow(p)">Edit</button>
+                    <button class="btn btn-outline-danger" @click="removeRow(p)">Delete</button>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="pageItems.length===0">
+                <td colspan="7" class="text-muted">No products found.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-        <div class="d-flex justify-content-between align-items-center">
+        <div class="table-footer">
           <div class="small text-muted">Page {{ page }} of {{ totalPages }}</div>
           <div class="btn-group btn-group-sm">
             <button class="btn btn-outline-secondary" :disabled="page<=1" @click="page--">Prev</button>

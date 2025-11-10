@@ -83,107 +83,99 @@ function onResetClick() {
   display: flex;
   height: 100vh;
   overflow: hidden;
-  background: var(--stripe-gray-50);
+  background: #fafafa;
 }
 
 /* ========================================
-   MODERN SIDEBAR
+   STRIPE EXACT SIDEBAR
    ======================================== */
 
 .stripe-sidebar {
-  width: 220px;
-  background: var(--card-bg);
-  border-right: 1px solid var(--border-color);
+  width: 240px;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   height: 100vh;
   overflow-y: auto;
-  box-shadow: var(--shadow-sm);
 }
 
 .sidebar-header {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border-color);
+  padding: 16px 16px 12px 16px;
+  border-bottom: 1px solid var(--sidebar-border);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
+  gap: 10px;
 }
 
 .brand-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   background: var(--stripe-purple);
-  border-radius: 0.375rem;
+  border-radius: 6px;
   color: white;
-  box-shadow: var(--shadow-sm);
+}
+
+.brand-icon svg {
+  width: 18px;
+  height: 18px;
 }
 
 .brand-text {
-  font-size: 1rem;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 0.625rem;
+  padding: 12px 8px;
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: 2px;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.625rem;
-  border-radius: 0.25rem;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
   color: var(--text-secondary);
   text-decoration: none;
-  font-size: 0.8125rem;
+  font-size: 14px;
   font-weight: 500;
-  transition: all var(--transition-base);
+  transition: all var(--transition-fast);
   position: relative;
 }
 
 .nav-item:hover {
-  background: var(--stripe-gray-50);
+  background: var(--sidebar-hover);
   color: var(--text-primary);
 }
 
 .nav-item.active {
-  background: var(--stripe-gray-50);
-  color: var(--stripe-purple);
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-active-text);
   font-weight: 600;
 }
 
-.nav-item.active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 24px;
-  background: var(--stripe-purple);
-  border-radius: 0 2px 2px 0;
-}
-
 .nav-icon {
-  font-size: 1rem;
-  width: 18px;
+  font-size: 18px;
+  width: 20px;
   text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: inherit;
 }
 
 .nav-label {
@@ -191,15 +183,19 @@ function onResetClick() {
 }
 
 .sidebar-footer {
-  padding: 0.625rem 0.75rem;
-  border-top: 1px solid var(--border-color);
+  padding: 12px;
+  border-top: 1px solid var(--sidebar-border);
+}
+
+.sidebar-footer .btn {
+  font-size: 13px;
 }
 
 .version {
   text-align: center;
-  font-size: 0.6875rem;
-  color: var(--text-secondary);
-  margin-top: 0.5rem;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 8px;
   font-weight: 500;
 }
 
@@ -213,11 +209,11 @@ function onResetClick() {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  background: #fafafa;
 }
 
 .main-header {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
+  background: #ffffff;
   border-bottom: 1px solid var(--border-color);
   position: sticky;
   top: 0;
@@ -228,25 +224,27 @@ function onResetClick() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1rem;
+  padding: 16px 24px;
+  min-height: 64px;
 }
 
 .header-title {
-  font-size: 1.125rem;
+  font-size: 20px;
   font-weight: 600;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 .header-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 8px;
+  align-items: center;
 }
 
 .main-body {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem;
+  padding: 24px;
 }
 
 /* ========================================

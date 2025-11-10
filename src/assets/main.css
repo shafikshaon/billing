@@ -10,7 +10,8 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Ubuntu, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #f6f9fc;
+  background: #fafafa;
+  color: var(--text-primary);
 }
 
 /* ========================================
@@ -18,38 +19,46 @@ body {
    ======================================== */
 
 :root {
-  /* Primary Stripe-like colors */
+  /* Stripe Exact Colors */
   --stripe-purple: #635bff;
   --stripe-purple-dark: #0a2540;
   --stripe-purple-light: #7a73ff;
-  --stripe-blue: #00d4ff;
+  --stripe-blue: #0074d4;
   --stripe-indigo: #5469d4;
 
-  /* Neutrals */
-  --stripe-gray-50: #f6f9fc;
-  --stripe-gray-100: #e3e8ee;
-  --stripe-gray-200: #c1c9d2;
-  --stripe-gray-300: #a3acb9;
-  --stripe-gray-400: #8792a2;
-  --stripe-gray-500: #697386;
-  --stripe-gray-600: #4f566b;
-  --stripe-gray-700: #3c4257;
-  --stripe-gray-800: #2a2f45;
-  --stripe-gray-900: #1a1f36;
+  /* Stripe Exact Grays - matching dashboard screenshot */
+  --stripe-gray-50: #fafafa;
+  --stripe-gray-100: #f6f6f7;
+  --stripe-gray-200: #e6e6e7;
+  --stripe-gray-300: #d5d5d6;
+  --stripe-gray-400: #b4b4b5;
+  --stripe-gray-500: #8e8e93;
+  --stripe-gray-600: #6e6e73;
+  --stripe-gray-700: #4a4a4f;
+  --stripe-gray-800: #2c2c2e;
+  --stripe-gray-900: #1c1c1e;
 
-  /* UI Colors */
-  --bg-gradient-start: #f6f9fc;
-  --bg-gradient-end: #ffffff;
+  /* UI Colors - Stripe Dashboard Exact */
+  --bg-gradient-start: #ffffff;
+  --bg-gradient-end: #fafafa;
   --card-bg: #ffffff;
-  --border-color: #e3e8ee;
-  --text-primary: #1a1f36;
-  --text-secondary: #697386;
+  --border-color: #e6e6e7;
+  --text-primary: #1c1c1e;
+  --text-secondary: #6e6e73;
+  --text-tertiary: #8e8e93;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  /* Sidebar specific */
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #e6e6e7;
+  --sidebar-hover: #f6f6f7;
+  --sidebar-active-bg: #f6f6f7;
+  --sidebar-active-text: #635bff;
+
+  /* Shadows - Subtle like Stripe */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 2px 6px 0 rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 4px 12px 0 rgba(0, 0, 0, 0.10);
 
   /* Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -58,19 +67,19 @@ body {
 }
 
 /* ========================================
-   MODERN FORM CONTROLS
+   STRIPE EXACT FORM CONTROLS
    ======================================== */
 
 .form-control,
 .form-select,
 textarea.form-control {
   border: 1px solid var(--border-color) !important;
-  padding: 0.375rem 0.625rem !important;
-  font-size: 0.8125rem !important;
-  border-radius: 0.25rem;
-  line-height: 1.4;
-  transition: all var(--transition-base);
-  background: var(--card-bg);
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+  border-radius: 6px;
+  line-height: 1.5;
+  transition: all var(--transition-fast);
+  background: #ffffff;
   color: var(--text-primary);
 }
 
@@ -89,48 +98,105 @@ textarea.form-control:focus {
 }
 
 .form-control-sm {
-  padding: 0.25rem 0.5rem !important;
-  font-size: 0.75rem !important;
+  padding: 6px 10px !important;
+  font-size: 13px !important;
 }
 
 .form-label {
-  font-size: 0.75rem;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-primary);
-  margin-bottom: 0.25rem;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236e6e73' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 32px !important;
+}
+
+.justify-content-center {
+  justify-content: center;
+}
+
+.col-lg-8, .col-xl-6 {
+  flex: 0 0 auto;
+}
+
+.col-lg-8 {
+  width: 66.66667%;
+}
+
+.col-xl-6 {
+  width: 50%;
+}
+
+.col-md-4 {
+  width: 33.33333%;
+}
+
+.col-md-6 {
+  width: 50%;
+}
+
+.col-md-8 {
+  width: 66.66667%;
+}
+
+@media (max-width: 1200px) {
+  .col-xl-6 {
+    width: 100%;
+  }
+}
+
+@media (max-width: 992px) {
+  .col-lg-8 {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .col-md-4, .col-md-6, .col-md-8 {
+    width: 100%;
+  }
 }
 
 /* ========================================
-   MODERN BUTTONS (Stripe-style)
+   STRIPE EXACT BUTTONS
    ======================================== */
 
 .btn {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.8125rem;
+  padding: 8px 16px;
+  font-size: 14px;
   font-weight: 500;
-  border-radius: 0.25rem;
-  transition: all var(--transition-base);
-  border: none;
+  border-radius: 6px;
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
+  gap: 6px;
+  cursor: pointer;
+  line-height: 1.4;
 }
 
 .btn-primary {
   background: var(--stripe-purple);
   color: white;
-  box-shadow: var(--shadow-sm);
+  border-color: var(--stripe-purple);
 }
 
 .btn-primary:hover {
-  background: var(--stripe-purple-light);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  background: #5753e4;
+  border-color: #5753e4;
 }
 
 .btn-primary:active {
-  transform: translateY(0);
+  background: #4845c7;
+  border-color: #4845c7;
 }
 
 .btn-outline-secondary {
@@ -142,6 +208,11 @@ textarea.form-control:focus {
 .btn-outline-secondary:hover {
   background: var(--stripe-gray-50);
   border-color: var(--stripe-gray-300) !important;
+  color: var(--text-primary);
+}
+
+.btn-outline-secondary:active {
+  background: var(--stripe-gray-100);
 }
 
 .btn-outline-danger {
@@ -153,77 +224,123 @@ textarea.form-control:focus {
 .btn-outline-danger:hover {
   background: #dc3545;
   color: white;
+  border-color: #dc3545 !important;
 }
 
 .btn-sm {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.btn-group .btn {
+  border-radius: 0;
+}
+
+.btn-group .btn:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.btn-group .btn:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* ========================================
-   MODERN CARDS (Stripe-style)
+   STRIPE EXACT CARDS
    ======================================== */
 
 .card {
   border: 1px solid var(--border-color);
-  margin-bottom: 1rem;
-  background: var(--card-bg);
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition-base);
-  border-radius: 0.5rem;
+  margin-bottom: 16px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  transition: all var(--transition-fast);
+  border-radius: 8px;
   overflow: hidden;
 }
 
-.card:hover {
-  box-shadow: var(--shadow-md);
-}
-
 .card-header {
-  padding: 0.625rem 0.875rem;
-  background: var(--card-bg) !important;
+  padding: 16px 20px;
+  background: #ffffff !important;
   color: var(--text-primary) !important;
   border-bottom: 1px solid var(--border-color);
-  font-size: 0.875rem;
+  font-size: 15px;
   font-weight: 600;
 }
 
 .card-body {
-  padding: 0.75rem 0.875rem;
+  padding: 20px;
 }
 
 /* ========================================
-   MODERN TABLES
+   STRIPE EXACT TABLES
    ======================================== */
 
 .table {
-  font-size: 0.8125rem;
+  font-size: 13px;
   color: var(--text-primary);
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .table thead th {
-  background: var(--stripe-gray-50);
+  background: #ffffff;
   border-bottom: 1px solid var(--border-color);
-  font-weight: 600;
-  font-size: 0.75rem;
+  font-weight: 500;
+  font-size: 12px;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-  padding: 0.375rem 0.625rem;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 12px 16px;
+  white-space: nowrap;
 }
 
 .table tbody td {
-  padding: 0.5rem 0.625rem;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--border-color);
   vertical-align: middle;
+  background: #ffffff;
+  font-size: 13px;
 }
 
-.table tbody tr:hover {
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover td {
   background: var(--stripe-gray-50);
   transition: background var(--transition-fast);
 }
 
 .table-sm > :not(caption) > * > * {
-  padding: 0.375rem 0.5rem;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.table .fw-medium {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-color);
+  background: #ffffff;
+}
+
+.table-light {
+  background: #ffffff !important;
 }
 
 /* ========================================
@@ -231,13 +348,33 @@ textarea.form-control:focus {
    ======================================== */
 
 .container-fluid {
-  padding-left: 1rem;
-  padding-right: 1rem;
+  padding-left: 24px;
+  padding-right: 24px;
 }
 
 .row.g-3 {
-  --bs-gutter-x: 0.75rem;
-  --bs-gutter-y: 0.75rem;
+  --bs-gutter-x: 16px;
+  --bs-gutter-y: 16px;
+}
+
+.col-12 {
+  width: 100%;
+}
+
+.w-100 {
+  width: 100% !important;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+}
+
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ========================================
@@ -426,31 +563,66 @@ textarea.form-control:focus {
 }
 
 /* ========================================
-   BADGES AND LABELS
+   STRIPE EXACT BADGES AND LABELS
    ======================================== */
 
 .badge {
-  padding: 0.2rem 0.4rem;
-  font-size: 0.6875rem;
+  padding: 4px 8px;
+  font-size: 12px;
   font-weight: 500;
-  border-radius: 0.2rem;
+  border-radius: 4px;
+  display: inline-block;
 }
 
 .text-bg-light {
-  background: var(--stripe-gray-50) !important;
+  background: var(--stripe-gray-100) !important;
   color: var(--text-primary) !important;
 }
 
 .badge.border {
   border: 1px solid var(--border-color) !important;
+  background: #ffffff !important;
+}
+
+.text-capitalize {
+  text-transform: capitalize;
+}
+
+.text-bg-secondary {
+  background: var(--stripe-gray-100) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color);
+}
+
+.text-uppercase {
+  text-transform: uppercase;
+}
+
+.btn-success {
+  background: #00a86b;
+  color: white;
+  border-color: #00a86b;
+}
+
+.btn-success:hover {
+  background: #008f5b;
+  border-color: #008f5b;
 }
 
 /* ========================================
-   UTILITY CLASSES
+   STRIPE EXACT UTILITY CLASSES
    ======================================== */
 
 .text-muted {
   color: var(--text-secondary) !important;
+}
+
+.text-end {
+  text-align: right !important;
+}
+
+.text-start {
+  text-align: left !important;
 }
 
 .bg-light {
@@ -462,11 +634,31 @@ textarea.form-control:focus {
 }
 
 .rounded {
-  border-radius: 0.375rem !important;
+  border-radius: 6px !important;
 }
 
 .shadow-sm {
   box-shadow: var(--shadow-sm) !important;
+}
+
+.d-flex {
+  display: flex !important;
+}
+
+.justify-content-between {
+  justify-content: space-between !important;
+}
+
+.align-items-center {
+  align-items: center !important;
+}
+
+.gap-2 {
+  gap: 8px !important;
+}
+
+.small {
+  font-size: 13px;
 }
 
 /* ========================================

@@ -59,27 +59,29 @@ function summary(t) {
           </div>
         </template>
 
-        <table class="table table-sm align-middle mb-2">
-          <thead class="table-light">
-            <tr><th>Name</th><th>Active</th><th>Schedule</th><th class="text-end"></th></tr>
-          </thead>
-          <tbody>
-            <tr v-for="t in pageItems" :key="t.id">
-              <td class="fw-medium">{{ t.name }}</td>
-              <td>{{ t.active ? 'Yes' : 'No' }}</td>
-              <td class="small text-muted">{{ summary(t) }}</td>
-              <td class="text-end">
-                <div class="btn-group btn-group-sm">
-                  <button class="btn btn-outline-secondary" @click="editRow(t)">Edit</button>
-                  <button class="btn btn-outline-danger" @click="removeRow(t)">Delete</button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="pageItems.length===0"><td colspan="4" class="text-muted">No payment terms found.</td></tr>
-          </tbody>
-        </table>
+        <div class="table-wrapper">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr><th>Name</th><th>Active</th><th>Schedule</th><th class="text-end"></th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="t in pageItems" :key="t.id">
+                <td class="fw-medium">{{ t.name }}</td>
+                <td>{{ t.active ? 'Yes' : 'No' }}</td>
+                <td class="small text-muted">{{ summary(t) }}</td>
+                <td class="text-end">
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-secondary" @click="editRow(t)">Edit</button>
+                    <button class="btn btn-outline-danger" @click="removeRow(t)">Delete</button>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="pageItems.length===0"><td colspan="4" class="text-muted">No payment terms found.</td></tr>
+            </tbody>
+          </table>
+        </div>
 
-        <div class="d-flex justify-content-between align-items-center">
+        <div class="table-footer">
           <div class="small text-muted">Page {{ page }} of {{ totalPages }}</div>
           <div class="btn-group btn-group-sm">
             <button class="btn btn-outline-secondary" :disabled="page<=1" @click="page--">Prev</button>

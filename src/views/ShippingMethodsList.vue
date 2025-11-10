@@ -50,35 +50,37 @@ function removeRow(s){
           </div>
         </template>
 
-        <table class="table table-sm align-middle mb-2">
-          <thead class="table-light">
-            <tr>
-              <th>Name</th><th>Region</th><th>Charge</th><th>Free ≥</th><th>Lead time</th><th>COD</th><th class="text-end"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="s in pageItems" :key="s.id">
-              <td class="fw-medium">{{ s.name }}</td>
-              <td class="text-capitalize">{{ s.region.replace('_',' ') }}</td>
-              <td>
-                <span v-if="s.chargeType==='fixed'">৳{{ Number(s.amount).toFixed(0) }}</span>
-                <span v-else>{{ Number(s.amount).toFixed(1) }}%</span>
-              </td>
-              <td>৳{{ Number(s.freeThreshold||0).toFixed(0) }}</td>
-              <td>{{ s.leadDaysMin }}–{{ s.leadDaysMax }} d</td>
-              <td>{{ s.codAvailable ? 'Yes' : 'No' }}</td>
-              <td class="text-end">
-                <div class="btn-group btn-group-sm">
-                  <button class="btn btn-outline-secondary" @click="editRow(s)">Edit</button>
-                  <button class="btn btn-outline-danger" @click="removeRow(s)">Delete</button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="pageItems.length===0"><td colspan="7" class="text-muted">No shipping methods found.</td></tr>
-          </tbody>
-        </table>
+        <div class="table-wrapper">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr>
+                <th>Name</th><th>Region</th><th>Charge</th><th>Free ≥</th><th>Lead time</th><th>COD</th><th class="text-end"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="s in pageItems" :key="s.id">
+                <td class="fw-medium">{{ s.name }}</td>
+                <td class="text-capitalize">{{ s.region.replace('_',' ') }}</td>
+                <td>
+                  <span v-if="s.chargeType==='fixed'">৳{{ Number(s.amount).toFixed(0) }}</span>
+                  <span v-else>{{ Number(s.amount).toFixed(1) }}%</span>
+                </td>
+                <td>৳{{ Number(s.freeThreshold||0).toFixed(0) }}</td>
+                <td>{{ s.leadDaysMin }}–{{ s.leadDaysMax }} d</td>
+                <td>{{ s.codAvailable ? 'Yes' : 'No' }}</td>
+                <td class="text-end">
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-secondary" @click="editRow(s)">Edit</button>
+                    <button class="btn btn-outline-danger" @click="removeRow(s)">Delete</button>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="pageItems.length===0"><td colspan="7" class="text-muted">No shipping methods found.</td></tr>
+            </tbody>
+          </table>
+        </div>
 
-        <div class="d-flex justify-content-between align-items-center">
+        <div class="table-footer">
           <div class="small text-muted">Page {{ page }} of {{ totalPages }}</div>
           <div class="btn-group btn-group-sm">
             <button class="btn btn-outline-secondary" :disabled="page<=1" @click="page--">Prev</button>

@@ -19,31 +19,27 @@ defineProps({
 
 <style scoped>
 .stripe-card {
-  background: var(--card-bg);
+  background: #ffffff;
   border: 1px solid var(--border-color);
-  border-radius: 0.75rem;
-  margin-bottom: 1.5rem;
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition-base);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  transition: all var(--transition-fast);
   overflow: hidden;
-}
-
-.stripe-card:hover {
-  box-shadow: var(--shadow-md);
 }
 
 .stripe-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.875rem 1.125rem;
-  background: var(--card-bg);
+  padding: 16px 20px;
+  background: #ffffff;
   border-bottom: 1px solid var(--border-color);
 }
 
 .stripe-card-title {
   margin: 0;
-  font-size: 0.9375rem;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
@@ -51,11 +47,16 @@ defineProps({
 
 .stripe-card-actions {
   display: flex;
-  gap: 0.375rem;
+  gap: 8px;
   align-items: center;
 }
 
 .stripe-card-body {
-  padding: 1rem 1.125rem;
+  padding: 0;
+  background: #ffffff;
+}
+
+.stripe-card-body :deep(.table) {
+  margin-bottom: 0;
 }
 </style>

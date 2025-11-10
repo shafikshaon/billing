@@ -70,38 +70,40 @@ function edit(i){ router.push(`/credit-notes/${i.id}/edit`) }
           </div>
         </template>
 
-        <table class="table table-sm align-middle mb-2">
-          <thead class="table-light">
-            <tr>
-              <th>No</th>
-              <th>Date</th>
-              <th>Customer</th>
-              <th>Ref Invoice</th>
-              <th>Status</th>
-              <th class="text-end">Amount (৳)</th>
-              <th class="text-end"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="cn in pageItems" :key="cn.id">
-              <td class="fw-medium">{{ cn.number }}</td>
-              <td>{{ cn.date }}</td>
-              <td>{{ store.customers.find(c=>c.id===cn.customerId)?.name }}</td>
-              <td>{{ store.invoices.find(inv=>inv.id===cn.originalInvoiceId)?.number || '—' }}</td>
-              <td class="text-capitalize">{{ cn.status || 'draft' }}</td>
-              <td class="text-end">{{ cnTotal(cn).toFixed(2) }}</td>
-              <td class="text-end">
-                <div class="btn-group btn-group-sm">
-                  <button class="btn btn-outline-secondary" @click="viewRow(cn)">View</button>
-                  <button class="btn btn-outline-secondary" @click="edit(cn)">Edit</button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="pageItems.length===0"><td colspan="7" class="text-muted">No credit notes found.</td></tr>
-          </tbody>
-        </table>
+        <div class="table-wrapper">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Date</th>
+                <th>Customer</th>
+                <th>Ref Invoice</th>
+                <th>Status</th>
+                <th class="text-end">Amount (৳)</th>
+                <th class="text-end"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="cn in pageItems" :key="cn.id">
+                <td class="fw-medium">{{ cn.number }}</td>
+                <td>{{ cn.date }}</td>
+                <td>{{ store.customers.find(c=>c.id===cn.customerId)?.name }}</td>
+                <td>{{ store.invoices.find(inv=>inv.id===cn.originalInvoiceId)?.number || '—' }}</td>
+                <td class="text-capitalize">{{ cn.status || 'draft' }}</td>
+                <td class="text-end">{{ cnTotal(cn).toFixed(2) }}</td>
+                <td class="text-end">
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-secondary" @click="viewRow(cn)">View</button>
+                    <button class="btn btn-outline-secondary" @click="edit(cn)">Edit</button>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="pageItems.length===0"><td colspan="7" class="text-muted">No credit notes found.</td></tr>
+            </tbody>
+          </table>
+        </div>
 
-        <div class="d-flex justify-content-between align-items-center">
+        <div class="table-footer">
           <div class="small text-muted">Page {{ page }} of {{ totalPages }}</div>
           <div class="btn-group btn-group-sm">
             <button class="btn btn-outline-secondary" :disabled="page<=1" @click="page--">Prev</button>
