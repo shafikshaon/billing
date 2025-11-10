@@ -91,7 +91,7 @@ function onResetClick() {
    ======================================== */
 
 .stripe-sidebar {
-  width: 220px;
+  width: 200px;
   background: var(--card-bg);
   border-right: 1px solid var(--border-color);
   display: flex;
@@ -103,30 +103,30 @@ function onResetClick() {
 }
 
 .sidebar-header {
-  padding: 0.75rem 1rem;
+  padding: 0.625rem 0.75rem;
   border-bottom: 1px solid var(--border-color);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.5rem;
 }
 
 .brand-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   background: var(--stripe-purple);
-  border-radius: 0.375rem;
+  border-radius: 0.25rem;
   color: white;
   box-shadow: var(--shadow-sm);
 }
 
 .brand-text {
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.02em;
@@ -134,17 +134,17 @@ function onResetClick() {
 
 .sidebar-nav {
   flex: 1;
-  padding: 0.625rem;
+  padding: 0.5rem 0.625rem;
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: 0.0625rem;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.375rem 0.625rem;
+  padding: 0.375rem 0.5rem;
   border-radius: 0.25rem;
   color: var(--text-secondary);
   text-decoration: none;
@@ -171,15 +171,15 @@ function onResetClick() {
   left: 0;
   top: 50%;
   transform: translateY(-50%);
-  width: 3px;
-  height: 24px;
+  width: 2px;
+  height: 20px;
   background: var(--stripe-purple);
   border-radius: 0 2px 2px 0;
 }
 
 .nav-icon {
-  font-size: 1rem;
-  width: 18px;
+  font-size: 0.9375rem;
+  width: 16px;
   text-align: center;
   display: flex;
   align-items: center;
@@ -191,15 +191,15 @@ function onResetClick() {
 }
 
 .sidebar-footer {
-  padding: 0.625rem 0.75rem;
+  padding: 0.5rem 0.625rem;
   border-top: 1px solid var(--border-color);
 }
 
 .version {
   text-align: center;
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   color: var(--text-secondary);
-  margin-top: 0.5rem;
+  margin-top: 0.375rem;
   font-weight: 500;
 }
 
@@ -270,7 +270,7 @@ function onResetClick() {
 
 @media (max-width: 992px) {
   .stripe-sidebar {
-    width: 200px;
+    width: 180px;
   }
 
   .header-content {
@@ -288,16 +288,16 @@ function onResetClick() {
 
 @media (max-width: 768px) {
   .stripe-sidebar {
-    width: 180px;
+    width: 160px;
   }
 
   .brand-text {
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
   }
 
   .nav-item {
-    padding: 0.375rem 0.625rem;
-    font-size: 0.8125rem;
+    padding: 0.375rem 0.5rem;
+    font-size: 0.75rem;
   }
 }
 </style>
