@@ -332,17 +332,155 @@ async function downloadPdf() {
 </script>
 
 <template>
-  <div class="row g-3" v-if="creditNote">
-    <div class="col-12">
-      <SectionCard :title="`Credit Note ${creditNote.number}`">
-        <template #actions>
-          <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-secondary" @click="editCN">Edit</button>
-            <button class="btn btn-outline-secondary" @click="printCN">Print</button>
-            <button class="btn btn-outline-secondary" @click="printPosReceipt">Receipt</button>
-            <button class="btn btn-primary" @click="downloadPdf">Download PDF</button>
+  <div v-if="creditNote">
+    <SectionCard>
+      <template #title>
+        <div class="d-flex align-items-center gap-3">
+          <span>Credit Note {{ creditNote.number }}</span>
+          <span v-if="creditNote.status" :class="['badge', `badge-${creditNote.status}`]">{{ creditNote.status }}</span>
+        </div>
+      </template>
+      <template #actions>
+        <div class="btn-group btn-group-sm">
+          <button class="btn btn-outline-secondary" @click="editCN">Edit</button>
+          <button class="btn btn-outline-secondary" @click="printCN">Print</button>
+          <button class="btn btn-outline-secondary" @click="printPosReceipt">Receipt</button>
+          <button class="btn btn-primary" @click="downloadPdf">Download PDF</button>
+        </div>
+      </template>
+
+      <!-- Credit Note Overview -->
+      <div class="detail-section">
+        <h3 class="detail-section-title">Credit Note Information</h3>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <div class="detail-label">Credit Note Number</div>
+            <div class="detail-value large">{{ creditNote.number }}</div>
           </div>
-        </template>
+          <div class="detail-item">
+            <div class="detail-label">Date</div>
+            <div class="detail-value">{{ creditNote.date }}</div>
+          </div>
+          <div class="detail-item" v-if="refInvoice">
+            <div class="detail-label">Reference Invoice</div>
+            <div class="detail-value">{{ refInvoice.number }}</div>
+          </div>
+          <div class="detail-item" v-if="creditNote.reason">
+            <div class="detail-label">Reason</div>
+            <div class="detail-value">{{ creditNote.reason }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Merchant & Customer Info -->
+      <div class="detail-section">
+        <h3 class="detail-section-title">Parties</h3>
+        <div class="detail-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+          <div class="detail-item">
+            <div class="detail-label">From (Merchant)</div>
+            <div class="detail-value">
+              <div class="fw-semibold">{{ merchant?.name }}</div>
+              <div v-if="merchantSelectedAddress" class="text-muted small mt-1">
+                {{ merchantSelectedAddress.line1 }}<br>
+                {{ merchantSelectedAddress.city }} {{ merchantSelectedAddress.zip }}
+              </div>
+              <div v-if="merchantSelectedContact" class="text-muted small mt-1">
+                {{ merchantSelectedContact.name }}<br>
+                <span v-if="merchantSelectedContact.email">{{ merchantSelectedContact.email }}</span>
+                <span v-if="merchantSelectedContact.phone"> · {{ merchantSelectedContact.phone }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">To (Customer)</div>
+            <div class="detail-value">
+              <div class="fw-semibold">{{ customer?.name }}</div>
+              <div v-if="customerSelectedAddress" class="text-muted small mt-1">
+                {{ customerSelectedAddress.line1 }}<br>
+                {{ customerSelectedAddress.city }} {{ customerSelectedAddress.zip }}
+              </div>
+              <div v-if="customerSelectedContact" class="text-muted small mt-1">
+                {{ customerSelectedContact.name }}<br>
+                <span v-if="customerSelectedContact.email">{{ customerSelectedContact.email }}</span>
+                <span v-if="customerSelectedContact.phone"> · {{ customerSelectedContact.phone }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Line Items -->
+      <div class="detail-section">
+        <h3 class="detail-section-title">Line Items</h3>
+        <div class="table-responsive">
+          <table class="table table-sm table-invoice align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Product / Description</th>
+                <th class="text-end">Qty</th>
+                <th class="text-end">Unit Price</th>
+                <th class="text-end">Discount</th>
+                <th class="text-end">Line Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="it in creditNote.items" :key="it.id">
+                <td>
+                  <div class="fw-medium">{{ store.products.find(p => p.id === it.productId)?.name || it.description || '—' }}</div>
+                  <div v-if="it.description && store.products.find(p => p.id === it.productId)?.name !== it.description" class="text-muted small">{{ it.description }}</div>
+                </td>
+                <td class="text-end">{{ it.qty }}</td>
+                <td class="text-end">{{ Number(it.unitPrice || 0).toFixed(2) }}</td>
+                <td class="text-end">
+                  <span v-if="(it.discountType || 'none') === 'percent'">-{{ Number(it.discountValue || 0).toFixed(0) }}%</span>
+                  <span v-else-if="(it.discountType || 'none') === 'fixed'">-{{ (Number(it.discountValue || 0) * Number(it.qty || 0)).toFixed(2) }}</span>
+                  <span v-else>—</span>
+                </td>
+                <td class="text-end fw-semibold">{{ lineNet(it).toFixed(2) }}</td>
+              </tr>
+              <tr v-if="!creditNote.items || !creditNote.items.length">
+                <td colspan="5" class="text-center text-muted">No items</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Totals -->
+      <div class="detail-section">
+        <h3 class="detail-section-title">Totals</h3>
+        <div class="totals-container">
+          <div class="totals-grid">
+            <div class="totals-row">
+              <span class="totals-label">Subtotal</span>
+              <span class="totals-value">{{ totals.sub.toFixed(2) }}</span>
+            </div>
+            <div class="totals-row">
+              <span class="totals-label">Tax</span>
+              <span class="totals-value">{{ totals.tax.toFixed(2) }}</span>
+            </div>
+            <div class="totals-row totals-grand">
+              <span class="totals-label">Total Credit</span>
+              <span class="totals-value">{{ totals.total.toFixed(2) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="detail-section" v-if="creditNote.notes || store.settings?.creditNote?.footerText">
+        <h3 class="detail-section-title">Additional Information</h3>
+        <div v-if="store.settings?.creditNote?.footerText" class="mb-3">
+          <div class="detail-label mb-2">Footer Text</div>
+          <div class="detail-value">{{ store.settings.creditNote.footerText }}</div>
+        </div>
+        <div v-if="creditNote.notes">
+          <div class="detail-label mb-2">Notes</div>
+          <div class="detail-value" style="white-space: pre-wrap;">{{ creditNote.notes }}</div>
+        </div>
+      </div>
+
+      <!-- Hidden print areas below -->
 
         <div class="print-area" ref="printRef">
           <div class="d-flex justify-content-between mb-3">
@@ -415,8 +553,152 @@ async function downloadPdf() {
             <div style="white-space: pre-wrap;">{{ creditNote.notes }}</div>
           </div>
         </div>
-      </SectionCard>
-    </div>
+    </SectionCard>
   </div>
-  <div v-else class="text-muted">Credit Note not found.</div>
+  <div v-else class="empty-state">Credit Note not found.</div>
 </template>
+
+<style scoped>
+.detail-section {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.detail-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 400;
+}
+
+.detail-value.large {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.totals-container {
+  max-width: 400px;
+  margin-left: auto;
+}
+
+.totals-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.totals-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.totals-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.totals-value {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.totals-grand {
+  border-top: 2px solid var(--border-color);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+.totals-grand .totals-label,
+.totals-grand .totals-value {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.badge-draft {
+  background-color: #e0e0e0;
+  color: #424242;
+}
+
+.badge-issued {
+  background-color: #b3e5fc;
+  color: #01579b;
+}
+
+.badge-applied {
+  background-color: #c8e6c9;
+  color: #2e7d32;
+}
+
+.badge-void {
+  background-color: #f5f5f5;
+  color: #757575;
+}
+
+.empty-state {
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-align: center;
+  padding: 32px;
+  font-style: italic;
+}
+
+.print-area {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .totals-container {
+    max-width: 100%;
+  }
+}
+</style>

@@ -3,9 +3,11 @@ import { reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SectionCard from '../components/SectionCard.vue'
 import { store, uid, upsert } from '../store'
+import { useToast } from '../utils/toast'
 
 const route = useRoute()
 const router = useRouter()
+const toast = useToast()
 const isEdit = route.path.endsWith('/edit')
 const editingId = isEdit ? route.params.id : null
 
@@ -55,13 +57,62 @@ function removeLine(i) {
   draft.schedule.forEach((l, idx) => (l.sequence = idx + 1))
 }
 
+function validateForm() {
+  if (!draft.name?.trim()) {
+    toast.error('Validation Error', 'Payment term name is required')
+    return false
+  }
+  if (!draft.schedule || draft.schedule.length === 0) {
+    toast.error('Validation Error', 'At least one schedule line is required')
+    return false
+  }
+
+  // Validate schedule lines
+  for (let i = 0; i < draft.schedule.length; i++) {
+    const line = draft.schedule[i]
+    if (line.valueAmount <= 0) {
+      toast.error('Validation Error', `Schedule line ${i + 1}: Value amount must be greater than 0`)
+      return false
+    }
+    if (line.dateType === 'days_after' && line.days < 0) {
+      toast.error('Validation Error', `Schedule line ${i + 1}: Days cannot be negative`)
+      return false
+    }
+    if (line.dateType === 'day_of_month' && (line.dayOfMonth < 1 || line.dayOfMonth > 31)) {
+      toast.error('Validation Error', `Schedule line ${i + 1}: Day of month must be between 1 and 31`)
+      return false
+    }
+  }
+
+  // Validate early discount settings
+  if (draft.settings.earlyDiscountEnabled) {
+    if (draft.settings.earlyDiscountPercent < 0 || draft.settings.earlyDiscountPercent > 100) {
+      toast.error('Validation Error', 'Early discount percent must be between 0 and 100')
+      return false
+    }
+    if (draft.settings.earlyDiscountDays < 0) {
+      toast.error('Validation Error', 'Early discount days cannot be negative')
+      return false
+    }
+  }
+
+  // Validate late fee settings
+  if (draft.settings.lateFeeEnabled && draft.settings.lateFeeAmount < 0) {
+    toast.error('Validation Error', 'Late fee amount cannot be negative')
+    return false
+  }
+
+  return true
+}
+
 function cancel(){ router.push('/payment-terms') }
 function save(){
-  if (!draft.name.trim()) return
+  if (!validateForm()) return
+
   if (!draft.id) draft.id = uid('term_')
   const copy = JSON.parse(JSON.stringify(draft))
   upsert(store.paymentTerms, copy)
-  alert('Payment term saved')
+  toast.success('Saved', 'Payment term saved successfully')
   router.push('/payment-terms')
 }
 </script>

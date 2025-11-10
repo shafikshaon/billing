@@ -5,7 +5,7 @@ import SectionCard from '../components/SectionCard.vue'
 import { store } from '../store'
 
 const router = useRouter()
-const search = ref('')
+const searchQuery = ref('')
 const sortAsc = ref(true)
 const status = ref('all')
 const page = ref(1)
@@ -29,7 +29,7 @@ function invTotal(inv) {
 }
 
 const filtered = computed(() => {
-  const q = search.value.trim().toLowerCase()
+  const q = searchQuery.value.trim().toLowerCase()
   let list = store.invoices.slice()
   if (status.value !== 'all') list = list.filter(i => (i.status||'draft') === status.value)
   if (q) list = list.filter(i =>
@@ -46,6 +46,9 @@ const pageItems = computed(() => {
   return filtered.value.slice(start, start + pageSize)
 })
 
+const hasSearchQuery = computed(() => searchQuery.value.trim().length > 0)
+const showEmptyState = computed(() => pageItems.value.length === 0)
+
 function createNew(){ router.push('/invoices/new') }
 function viewRow(i){ router.push(`/invoices/${i.id}`) }
 function edit(i){ router.push(`/invoices/${i.id}/edit`) }
@@ -57,7 +60,15 @@ function edit(i){ router.push(`/invoices/${i.id}/edit`) }
       <SectionCard title="Invoices">
         <template #actions>
           <div class="d-flex gap-2">
-            <input class="form-control form-control-sm" placeholder="Search by number or customer..." v-model="search" />
+            <div class="search-bar">
+              <span class="search-icon">🔍</span>
+              <input
+                type="text"
+                v-model="searchQuery"
+                class="form-control form-control-sm"
+                placeholder="Search invoices..."
+              />
+            </div>
             <select class="form-select form-select-sm" style="max-width:140px" v-model="status">
               <option value="all">All</option>
               <option value="draft">Draft</option>
@@ -70,39 +81,59 @@ function edit(i){ router.push(`/invoices/${i.id}/edit`) }
           </div>
         </template>
 
-        <div class="table-wrapper">
-          <table class="table table-sm align-middle">
-            <thead>
-              <tr>
-                <th>No</th><th>Date</th><th>Customer</th><th>Status</th><th class="text-end">Total (৳)</th><th class="text-end"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="inv in pageItems" :key="inv.id">
-                <td class="fw-medium">{{ inv.number }}</td>
-                <td>{{ inv.date }}</td>
-                <td>{{ store.customers.find(c=>c.id===inv.customerId)?.name }}</td>
-                <td class="text-capitalize">{{ inv.status || 'draft' }}</td>
-                <td class="text-end">{{ invTotal(inv).toFixed(2) }}</td>
-                <td class="text-end">
-                  <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-secondary" @click="viewRow(inv)">View</button>
-                    <button class="btn btn-outline-secondary" @click="edit(inv)">Edit</button>
-                  </div>
-                </td>
-              </tr>
-              <tr v-if="pageItems.length===0"><td colspan="6" class="text-muted">No invoices found.</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="table-footer">
-          <div class="small text-muted">Page {{ page }} of {{ totalPages }}</div>
-          <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-secondary" :disabled="page<=1" @click="page--">Prev</button>
-            <button class="btn btn-outline-secondary" :disabled="page>=totalPages" @click="page++">Next</button>
+        <div v-if="showEmptyState" class="empty-state">
+          <div class="empty-state-icon">🧾</div>
+          <div class="empty-state-title">
+            {{ hasSearchQuery ? 'No invoices found' : 'No invoices yet' }}
+          </div>
+          <div class="empty-state-description">
+            {{ hasSearchQuery ? 'Try adjusting your search or filters to find what you\'re looking for.' : 'Get started by creating your first invoice to bill your customers.' }}
+          </div>
+          <div v-if="!hasSearchQuery" class="empty-state-action">
+            <button class="btn btn-primary" @click="createNew">
+              Create Invoice
+            </button>
           </div>
         </div>
+
+        <template v-else>
+          <div class="table-wrapper">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th>No</th><th>Date</th><th>Customer</th><th>Status</th><th class="text-end">Total (৳)</th><th class="text-end"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="inv in pageItems" :key="inv.id">
+                  <td class="fw-medium">{{ inv.number }}</td>
+                  <td>{{ inv.date }}</td>
+                  <td>{{ store.customers.find(c=>c.id===inv.customerId)?.name }}</td>
+                  <td>
+                    <span :class="['badge', `badge-${inv.status || 'draft'}`]">
+                      {{ inv.status || 'draft' }}
+                    </span>
+                  </td>
+                  <td class="text-end">{{ invTotal(inv).toFixed(2) }}</td>
+                  <td class="text-end">
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-secondary" @click="viewRow(inv)">View</button>
+                      <button class="btn btn-outline-secondary" @click="edit(inv)">Edit</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-footer">
+            <div class="small text-muted">Page {{ page }} of {{ totalPages }}</div>
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-outline-secondary" :disabled="page<=1" @click="page--">Prev</button>
+              <button class="btn btn-outline-secondary" :disabled="page>=totalPages" @click="page++">Next</button>
+            </div>
+          </div>
+        </template>
       </SectionCard>
     </div>
   </div>

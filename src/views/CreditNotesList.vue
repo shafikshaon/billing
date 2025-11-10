@@ -5,7 +5,7 @@ import SectionCard from '../components/SectionCard.vue'
 import { store } from '../store'
 
 const router = useRouter()
-const search = ref('')
+const searchQuery = ref('')
 const sortAsc = ref(true)
 const status = ref('all')
 const page = ref(1)
@@ -29,7 +29,7 @@ function cnTotal(cn) {
 }
 
 const filtered = computed(() => {
-  const q = search.value.trim().toLowerCase()
+  const q = searchQuery.value.trim().toLowerCase()
   let list = (store.creditNotes || []).slice()
   if (status.value !== 'all') list = list.filter(i => (i.status||'draft') === status.value)
   if (q) list = list.filter(i =>
@@ -46,9 +46,24 @@ const pageItems = computed(() => {
   const start = (p - 1) * pageSize
   return filtered.value.slice(start, start + pageSize)
 })
+
+const hasSearchQuery = computed(() => searchQuery.value.trim().length > 0)
+const showEmptyState = computed(() => pageItems.value.length === 0)
+
 function createNew(){ router.push('/credit-notes/new') }
 function viewRow(i){ router.push(`/credit-notes/${i.id}`) }
 function edit(i){ router.push(`/credit-notes/${i.id}/edit`) }
+
+// Map credit note statuses to badge classes
+function getBadgeClass(status) {
+  const statusMap = {
+    'draft': 'badge-draft',
+    'issued': 'badge-sent',
+    'applied': 'badge-paid',
+    'voided': 'badge-void'
+  }
+  return statusMap[status] || 'badge-draft'
+}
 </script>
 
 <template>
@@ -57,7 +72,15 @@ function edit(i){ router.push(`/credit-notes/${i.id}/edit`) }
       <SectionCard title="Credit Notes">
         <template #actions>
           <div class="d-flex gap-2">
-            <input class="form-control form-control-sm" placeholder="Search by number, invoice or customer..." v-model="search" />
+            <div class="search-bar">
+              <span class="search-icon">🔍</span>
+              <input
+                type="text"
+                v-model="searchQuery"
+                class="form-control form-control-sm"
+                placeholder="Search credit notes..."
+              />
+            </div>
             <select class="form-select form-select-sm" style="max-width:140px" v-model="status">
               <option value="all">All</option>
               <option value="draft">Draft</option>
@@ -70,46 +93,66 @@ function edit(i){ router.push(`/credit-notes/${i.id}/edit`) }
           </div>
         </template>
 
-        <div class="table-wrapper">
-          <table class="table table-sm align-middle">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Date</th>
-                <th>Customer</th>
-                <th>Ref Invoice</th>
-                <th>Status</th>
-                <th class="text-end">Amount (৳)</th>
-                <th class="text-end"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="cn in pageItems" :key="cn.id">
-                <td class="fw-medium">{{ cn.number }}</td>
-                <td>{{ cn.date }}</td>
-                <td>{{ store.customers.find(c=>c.id===cn.customerId)?.name }}</td>
-                <td>{{ store.invoices.find(inv=>inv.id===cn.originalInvoiceId)?.number || '—' }}</td>
-                <td class="text-capitalize">{{ cn.status || 'draft' }}</td>
-                <td class="text-end">{{ cnTotal(cn).toFixed(2) }}</td>
-                <td class="text-end">
-                  <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-secondary" @click="viewRow(cn)">View</button>
-                    <button class="btn btn-outline-secondary" @click="edit(cn)">Edit</button>
-                  </div>
-                </td>
-              </tr>
-              <tr v-if="pageItems.length===0"><td colspan="7" class="text-muted">No credit notes found.</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="table-footer">
-          <div class="small text-muted">Page {{ page }} of {{ totalPages }}</div>
-          <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-secondary" :disabled="page<=1" @click="page--">Prev</button>
-            <button class="btn btn-outline-secondary" :disabled="page>=totalPages" @click="page++">Next</button>
+        <div v-if="showEmptyState" class="empty-state">
+          <div class="empty-state-icon">💳</div>
+          <div class="empty-state-title">
+            {{ hasSearchQuery ? 'No credit notes found' : 'No credit notes yet' }}
+          </div>
+          <div class="empty-state-description">
+            {{ hasSearchQuery ? 'Try adjusting your search or filters to find what you\'re looking for.' : 'Get started by creating your first credit note to issue refunds or credits to customers.' }}
+          </div>
+          <div v-if="!hasSearchQuery" class="empty-state-action">
+            <button class="btn btn-primary" @click="createNew">
+              Create Credit Note
+            </button>
           </div>
         </div>
+
+        <template v-else>
+          <div class="table-wrapper">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>Date</th>
+                  <th>Customer</th>
+                  <th>Ref Invoice</th>
+                  <th>Status</th>
+                  <th class="text-end">Amount (৳)</th>
+                  <th class="text-end"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="cn in pageItems" :key="cn.id">
+                  <td class="fw-medium">{{ cn.number }}</td>
+                  <td>{{ cn.date }}</td>
+                  <td>{{ store.customers.find(c=>c.id===cn.customerId)?.name }}</td>
+                  <td>{{ store.invoices.find(inv=>inv.id===cn.originalInvoiceId)?.number || '—' }}</td>
+                  <td>
+                    <span :class="['badge', getBadgeClass(cn.status || 'draft')]">
+                      {{ cn.status || 'draft' }}
+                    </span>
+                  </td>
+                  <td class="text-end">{{ cnTotal(cn).toFixed(2) }}</td>
+                  <td class="text-end">
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-secondary" @click="viewRow(cn)">View</button>
+                      <button class="btn btn-outline-secondary" @click="edit(cn)">Edit</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-footer">
+            <div class="small text-muted">Page {{ page }} of {{ totalPages }}</div>
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-outline-secondary" :disabled="page<=1" @click="page--">Prev</button>
+              <button class="btn btn-outline-secondary" :disabled="page>=totalPages" @click="page++">Next</button>
+            </div>
+          </div>
+        </template>
       </SectionCard>
     </div>
   </div>

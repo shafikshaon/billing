@@ -5,13 +5,13 @@ import SectionCard from '../components/SectionCard.vue'
 import { store, removeById } from '../store'
 
 const router = useRouter()
-const search = ref('')
+const searchQuery = ref('')
 const sortAsc = ref(true)
 const page = ref(1)
 const pageSize = 10
 
 const filtered = computed(() => {
-  const q = search.value.trim().toLowerCase()
+  const q = searchQuery.value.trim().toLowerCase()
   let list = store.products.slice()
   if (q) list = list.filter(p => p.name?.toLowerCase().includes(q))
   list.sort((a, b) => {
@@ -26,6 +26,9 @@ const pageItems = computed(() => {
   const start = (p - 1) * pageSize
   return filtered.value.slice(start, start + pageSize)
 })
+
+const hasSearchQuery = computed(() => searchQuery.value.trim().length > 0)
+const showEmptyState = computed(() => pageItems.value.length === 0)
 
 function goNew() { router.push('/products/new') }
 function goBulkImport() { router.push('/products/bulk-import') }
@@ -50,7 +53,15 @@ function fmtDiscount(p) {
       <SectionCard title="Products">
         <template #actions>
           <div class="d-flex gap-2">
-            <input class="form-control form-control-sm" placeholder="Search..." v-model="search"/>
+            <div class="search-bar">
+              <span class="search-icon">🔍</span>
+              <input
+                type="text"
+                v-model="searchQuery"
+                class="form-control form-control-sm"
+                placeholder="Search products..."
+              />
+            </div>
             <button class="btn btn-sm btn-outline-secondary" type="button" @click="sortAsc = !sortAsc">
               Sort {{ sortAsc ? 'A→Z' : 'Z→A' }}
             </button>
@@ -59,44 +70,58 @@ function fmtDiscount(p) {
           </div>
         </template>
 
-        <div class="table-wrapper">
-          <table class="table table-sm align-middle">
-            <thead>
-              <tr><th>Name</th><th>Unit</th><th>Type</th><th>Price</th><th>Discount</th><th>Tax</th><th class="text-end"></th></tr>
-            </thead>
-            <tbody>
-              <tr v-for="p in pageItems" :key="p.id">
-                <td class="fw-medium">{{ p.name }}</td>
-                <td class="text-uppercase">{{ p.unit }}</td>
-                <td class="text-capitalize">{{ p.type }}</td>
-                <td>{{ Number(p.price||0).toFixed(2) }}</td>
-                <td>{{ fmtDiscount(p) }}</td>
-                <td>
-                  <span v-if="p.taxId">{{ store.taxes.find(t=>t.id===p.taxId)?.name }} ({{ store.taxes.find(t=>t.id===p.taxId)?.rate }}%)</span>
-                  <span v-else class="text-muted">None</span>
-                </td>
-                <td class="text-end">
-                  <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-secondary" @click="viewRow(p)">View</button>
-                    <button class="btn btn-outline-secondary" @click="editRow(p)">Edit</button>
-                    <button class="btn btn-outline-danger" @click="removeRow(p)">Delete</button>
-                  </div>
-                </td>
-              </tr>
-              <tr v-if="pageItems.length===0">
-                <td colspan="7" class="text-muted">No products found.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="table-footer">
-          <div class="small text-muted">Page {{ page }} of {{ totalPages }}</div>
-          <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-secondary" :disabled="page<=1" @click="page--">Prev</button>
-            <button class="btn btn-outline-secondary" :disabled="page>=totalPages" @click="page++">Next</button>
+        <div v-if="showEmptyState" class="empty-state">
+          <div class="empty-state-icon">📦</div>
+          <div class="empty-state-title">
+            {{ hasSearchQuery ? 'No products found' : 'No products yet' }}
+          </div>
+          <div class="empty-state-description">
+            {{ hasSearchQuery ? 'Try adjusting your search to find what you\'re looking for.' : 'Get started by adding your first product or service to include in invoices.' }}
+          </div>
+          <div v-if="!hasSearchQuery" class="empty-state-action">
+            <button class="btn btn-primary" @click="goNew">
+              Add Product
+            </button>
           </div>
         </div>
+
+        <template v-else>
+          <div class="table-wrapper">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr><th>Name</th><th>Unit</th><th>Type</th><th>Price</th><th>Discount</th><th>Tax</th><th class="text-end"></th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="p in pageItems" :key="p.id">
+                  <td class="fw-medium">{{ p.name }}</td>
+                  <td class="text-uppercase">{{ p.unit }}</td>
+                  <td class="text-capitalize">{{ p.type }}</td>
+                  <td>{{ Number(p.price||0).toFixed(2) }}</td>
+                  <td>{{ fmtDiscount(p) }}</td>
+                  <td>
+                    <span v-if="p.taxId">{{ store.taxes.find(t=>t.id===p.taxId)?.name }} ({{ store.taxes.find(t=>t.id===p.taxId)?.rate }}%)</span>
+                    <span v-else class="text-muted">None</span>
+                  </td>
+                  <td class="text-end">
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-secondary" @click="viewRow(p)">View</button>
+                      <button class="btn btn-outline-secondary" @click="editRow(p)">Edit</button>
+                      <button class="btn btn-outline-danger" @click="removeRow(p)">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-footer">
+            <div class="small text-muted">Page {{ page }} of {{ totalPages }}</div>
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-outline-secondary" :disabled="page<=1" @click="page--">Prev</button>
+              <button class="btn btn-outline-secondary" :disabled="page>=totalPages" @click="page++">Next</button>
+            </div>
+          </div>
+        </template>
       </SectionCard>
     </div>
   </div>
