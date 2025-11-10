@@ -57,7 +57,7 @@ import { store } from '../store'
 .stat-item {
   text-align: center;
   padding: 16px;
-  background: var(--stripe-gray-50);
+  background: var(--gray-50);
   border-radius: 8px;
   border: 1px solid var(--border-color);
 }

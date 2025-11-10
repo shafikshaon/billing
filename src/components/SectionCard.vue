@@ -21,25 +21,29 @@ defineProps({
 .stripe-card {
   background: #ffffff;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.02);
-  transition: all var(--transition-fast);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-base);
   overflow: hidden;
+}
+
+.stripe-card:hover {
+  box-shadow: var(--shadow-lg);
 }
 
 .stripe-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
+  padding: 16px 24px;
   background: #ffffff;
   border-bottom: 1px solid var(--border-color);
 }
 
 .stripe-card-title {
   margin: 0;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
@@ -47,7 +51,7 @@ defineProps({
 
 .stripe-card-actions {
   display: flex;
-  gap: 6px;
+  gap: 12px;
   align-items: center;
 }
 

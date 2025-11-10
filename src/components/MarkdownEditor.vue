@@ -188,7 +188,7 @@ export default {
 .preview {
   margin-top: 1rem;
   padding: 1.25rem;
-  background: var(--stripe-gray-50);
+  background: var(--gray-50);
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   max-height: 400px;

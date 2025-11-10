@@ -198,7 +198,7 @@ function onResetClick() {
   background: var(--sidebar-active-bg);
   color: var(--text-primary);
   font-weight: 500;
-  border-left-color: var(--stripe-purple);
+  border-left-color: var(--primary-purple);
 }
 
 .nav-icon {
