@@ -20,12 +20,21 @@ export default defineConfig({
     // Ensure proper module resolution for production
     rollupOptions: {
       output: {
-        manualChunks: undefined,
+        // Use default chunk splitting for better caching
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            return 'vendor'
+          }
+        },
       },
     },
     // Generate source maps for debugging if needed
     sourcemap: false,
     // Ensure assets are properly hashed for cache busting
     assetsInlineLimit: 4096,
+    // Target modern browsers
+    target: 'es2015',
+    // Ensure chunks are properly generated
+    chunkSizeWarningLimit: 1000,
   },
 })
