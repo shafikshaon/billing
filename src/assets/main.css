@@ -10,7 +10,7 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Ubuntu, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #fafafa;
+  background: var(--bg-primary);
   color: var(--text-primary);
 }
 
@@ -19,46 +19,47 @@ body {
    ======================================== */
 
 :root {
-  /* Stripe Exact Colors */
-  --stripe-purple: #635bff;
-  --stripe-purple-dark: #0a2540;
-  --stripe-purple-light: #7a73ff;
-  --stripe-blue: #0074d4;
-  --stripe-indigo: #5469d4;
+  /* Primary Colors */
+  --primary-purple: #6366f1;
+  --primary-purple-dark: #4f46e5;
+  --primary-purple-light: #818cf8;
+  --primary-blue: #3b82f6;
+  --primary-green: #10b981;
+  --primary-red: #ef4444;
 
-  /* Stripe Exact Grays - matching dashboard screenshot */
-  --stripe-gray-50: #fafafa;
-  --stripe-gray-100: #f6f6f7;
-  --stripe-gray-200: #e6e6e7;
-  --stripe-gray-300: #d5d5d6;
-  --stripe-gray-400: #b4b4b5;
-  --stripe-gray-500: #8e8e93;
-  --stripe-gray-600: #6e6e73;
-  --stripe-gray-700: #4a4a4f;
-  --stripe-gray-800: #2c2c2e;
-  --stripe-gray-900: #1c1c1e;
+  /* Grays */
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
 
-  /* UI Colors - Stripe Dashboard Exact */
-  --bg-gradient-start: #ffffff;
-  --bg-gradient-end: #fafafa;
+  /* UI Colors */
+  --bg-primary: #f9fafb;
+  --bg-secondary: #ffffff;
   --card-bg: #ffffff;
-  --border-color: #e6e6e7;
-  --text-primary: #1c1c1e;
-  --text-secondary: #6e6e73;
-  --text-tertiary: #8e8e93;
+  --border-color: #e5e7eb;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
 
-  /* Sidebar specific */
+  /* Sidebar */
   --sidebar-bg: #ffffff;
-  --sidebar-border: #e6e6e7;
-  --sidebar-hover: #f6f6f7;
-  --sidebar-active-bg: #f6f6f7;
-  --sidebar-active-text: #635bff;
+  --sidebar-border: #e5e7eb;
+  --sidebar-hover: #f3f4f6;
+  --sidebar-active-bg: #f3f4f6;
 
-  /* Shadows - Subtle like Stripe */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
-  --shadow-md: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 2px 6px 0 rgba(0, 0, 0, 0.08);
-  --shadow-xl: 0 4px 12px 0 rgba(0, 0, 0, 0.10);
+  /* Shadows */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 
   /* Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -175,84 +176,87 @@ textarea.form-control:focus {
    ======================================== */
 
 .btn {
-  padding: 4px 10px;
-  font-size: 12px;
+  padding: 6px 14px;
+  font-size: 13px;
   font-weight: 500;
-  border-radius: 4px;
+  border-radius: 6px;
   transition: all var(--transition-fast);
   border: 1px solid transparent;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
   cursor: pointer;
-  line-height: 1.3;
+  line-height: 1.5;
+  box-shadow: var(--shadow-xs);
 }
 
 .btn-primary {
-  background: var(--stripe-purple);
+  background: var(--primary-purple);
   color: white;
-  border-color: var(--stripe-purple);
+  border-color: var(--primary-purple);
 }
 
 .btn-primary:hover {
-  background: #5753e4;
-  border-color: #5753e4;
+  background: var(--primary-purple-dark);
+  border-color: var(--primary-purple-dark);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:active {
-  background: #4845c7;
-  border-color: #4845c7;
+  background: var(--primary-purple-dark);
+  transform: translateY(0);
 }
 
 .btn-outline-secondary {
   background: white;
   border: 1px solid var(--border-color) !important;
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 .btn-outline-secondary:hover {
-  background: var(--stripe-gray-50);
-  border-color: var(--stripe-gray-300) !important;
+  background: var(--gray-50);
+  border-color: var(--gray-300) !important;
   color: var(--text-primary);
 }
 
 .btn-outline-secondary:active {
-  background: var(--stripe-gray-100);
+  background: var(--gray-100);
 }
 
 .btn-outline-danger {
   background: white;
-  border: 1px solid #dc3545 !important;
-  color: #dc3545;
+  border: 1px solid var(--primary-red) !important;
+  color: var(--primary-red);
 }
 
 .btn-outline-danger:hover {
-  background: #dc3545;
+  background: var(--primary-red);
   color: white;
-  border-color: #dc3545 !important;
+  border-color: var(--primary-red) !important;
 }
 
 .btn-sm {
-  padding: 3px 8px;
-  font-size: 11px;
-  line-height: 1.3;
+  padding: 4px 10px;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .btn-group .btn {
   border-radius: 0;
+  box-shadow: none;
 }
 
 .btn-group .btn:first-child {
-  border-radius: 4px 0 0 4px;
+  border-radius: 6px 0 0 6px;
 }
 
 .btn-group .btn:last-child {
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 6px 6px 0;
 }
 
 .btn-group-sm .btn {
-  padding: 2px 6px;
+  padding: 3px 8px;
   font-size: 11px;
   line-height: 1.3;
 }
@@ -262,31 +266,43 @@ textarea.form-control:focus {
   cursor: not-allowed;
 }
 
+.btn-success {
+  background: var(--primary-green);
+  color: white;
+  border-color: var(--primary-green);
+}
+
+.btn-success:hover {
+  background: #059669;
+  border-color: #059669;
+  box-shadow: var(--shadow-sm);
+}
+
 /* ========================================
    STRIPE EXACT CARDS
    ======================================== */
 
 .card {
   border: 1px solid var(--border-color);
-  margin-bottom: 10px;
-  background: #ffffff;
-  box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.02);
+  margin-bottom: 16px;
+  background: var(--card-bg);
+  box-shadow: var(--shadow-sm);
   transition: all var(--transition-fast);
-  border-radius: 6px;
+  border-radius: 8px;
   overflow: hidden;
 }
 
 .card-header {
-  padding: 10px 12px;
-  background: #ffffff !important;
+  padding: 14px 18px;
+  background: var(--card-bg) !important;
   color: var(--text-primary) !important;
   border-bottom: 1px solid var(--border-color);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .card-body {
-  padding: 12px;
+  padding: 18px;
 }
 
 /* ========================================

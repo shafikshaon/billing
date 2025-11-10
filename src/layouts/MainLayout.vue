@@ -5,15 +5,33 @@ import router from '../router'
 import { resetStore } from '../store'
 
 const route = useRoute()
-const routes = computed(() =>
-  router.getRoutes()
+
+const sectionTitles = {
+  main: '',
+  accounts: 'ACCOUNTS & TRANSACTIONS',
+  planning: 'PLANNING & BUDGETS',
+  transactions: '',
+  settings: 'SETTINGS'
+}
+
+const groupedRoutes = computed(() => {
+  const allRoutes = router.getRoutes()
     .filter(r => r.meta && r.name && r.path !== '/' && !r.meta?.hidden)
     .map(r => ({
       name: r.name,
       path: r.path,
       icon: r.meta.icon || '•',
+      section: r.meta.section || 'main'
     }))
-)
+
+  const groups = {}
+  allRoutes.forEach(r => {
+    if (!groups[r.section]) groups[r.section] = []
+    groups[r.section].push(r)
+  })
+
+  return groups
+})
 
 function onResetClick() {
   if (confirm('Reset sample data? This will overwrite current data in this browser.')) {
@@ -39,16 +57,19 @@ function onResetClick() {
       </div>
 
       <nav class="sidebar-nav">
-        <router-link
-          v-for="r in routes"
-          :key="r.path"
-          :to="r.path"
-          class="nav-item"
-          :class="{ active: route.path.startsWith(r.path) }"
-        >
-          <span class="nav-icon">{{ r.icon }}</span>
-          <span class="nav-label">{{ r.name }}</span>
-        </router-link>
+        <template v-for="(routes, section) in groupedRoutes" :key="section">
+          <div v-if="sectionTitles[section]" class="nav-section-title">{{ sectionTitles[section] }}</div>
+          <router-link
+            v-for="r in routes"
+            :key="r.path"
+            :to="r.path"
+            class="nav-item"
+            :class="{ active: route.path.startsWith(r.path) }"
+          >
+            <span class="nav-icon">{{ r.icon }}</span>
+            <span class="nav-label">{{ r.name }}</span>
+          </router-link>
+        </template>
       </nav>
 
       <div class="sidebar-footer">
@@ -137,24 +158,35 @@ function onResetClick() {
 
 .sidebar-nav {
   flex: 1;
-  padding: 8px 6px;
+  padding: 12px 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 0;
+  overflow-y: auto;
+}
+
+.nav-section-title {
+  padding: 16px 16px 8px 16px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 4px;
-  color: var(--text-secondary);
+  gap: 10px;
+  padding: 8px 16px;
+  border-radius: 0;
+  color: var(--text-primary);
   text-decoration: none;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 400;
   transition: all var(--transition-fast);
   position: relative;
+  border-left: 3px solid transparent;
 }
 
 .nav-item:hover {
@@ -164,8 +196,9 @@ function onResetClick() {
 
 .nav-item.active {
   background: var(--sidebar-active-bg);
-  color: var(--sidebar-active-text);
-  font-weight: 600;
+  color: var(--text-primary);
+  font-weight: 500;
+  border-left-color: var(--stripe-purple);
 }
 
 .nav-icon {

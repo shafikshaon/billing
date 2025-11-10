@@ -42,70 +42,67 @@ const BulkImportProducts = () => import('../views/BulkImportProducts.vue')
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    { path: '/', redirect: '/invoices' },
-    { path: '/dashboard', name: 'Dashboard', component: Dashboard, meta: { icon: '🏠' } },
+    { path: '/', redirect: '/dashboard' },
+    { path: '/dashboard', name: 'Dashboard', component: Dashboard, meta: { icon: '📊', section: 'main' } },
 
     // Merchants
-    { path: '/merchants', name: 'Merchants', component: MerchantsList, meta: { icon: '🏢' } },
+    { path: '/merchants', name: 'Merchants', component: MerchantsList, meta: { icon: '🏢', section: 'accounts' } },
     { path: '/merchants/new', name: 'New Merchant', component: MerchantForm, meta: { icon: '🏢', hidden: true } },
     { path: '/merchants/:id', name: 'Merchant', component: MerchantView, meta: { icon: '🏢', hidden: true } },
     { path: '/merchants/:id/edit', name: 'Edit Merchant', component: MerchantForm, meta: { icon: '🏢', hidden: true } },
     { path: '/merchants/bulk-import', name: 'Bulk Import Merchants', component: BulkImportMerchants, meta: { icon: '📥', hidden: true } },
 
     // Customers
-    { path: '/customers', name: 'Customers', component: CustomersList, meta: { icon: '👤' } },
+    { path: '/customers', name: 'Customers', component: CustomersList, meta: { icon: '👤', section: 'accounts' } },
     { path: '/customers/new', name: 'New Customer', component: CustomerForm, meta: { icon: '👤', hidden: true } },
     { path: '/customers/:id', name: 'Customer', component: CustomerView, meta: { icon: '👤', hidden: true } },
     { path: '/customers/:id/edit', name: 'Edit Customer', component: CustomerForm, meta: { icon: '👤', hidden: true } },
     { path: '/customers/bulk-import', name: 'Bulk Import Customers', component: BulkImportCustomers, meta: { icon: '📥', hidden: true } },
 
     // Products
-    { path: '/products', name: 'Products', component: ProductsList, meta: { icon: '📦' } },
+    { path: '/products', name: 'Products', component: ProductsList, meta: { icon: '📦', section: 'accounts' } },
     { path: '/products/new', name: 'New Product', component: ProductForm, meta: { icon: '📦', hidden: true } },
     { path: '/products/:id', name: 'Product', component: ProductView, meta: { icon: '📦', hidden: true } },
     { path: '/products/:id/edit', name: 'Edit Product', component: ProductForm, meta: { icon: '📦', hidden: true } },
     { path: '/products/bulk-import', name: 'Bulk Import Products', component: BulkImportProducts, meta: { icon: '📥', hidden: true } },
 
     // Taxes
-    { path: '/taxes', name: 'Taxes', component: TaxesList, meta: { icon: '💸' } },
+    { path: '/taxes', name: 'Taxes', component: TaxesList, meta: { icon: '💸', section: 'planning' } },
     { path: '/taxes/new', name: 'New Tax', component: TaxForm, meta: { icon: '💸', hidden: true } },
     { path: '/taxes/:id/edit', name: 'Edit Tax', component: TaxForm, meta: { icon: '💸', hidden: true } },
 
     // Payment Terms
-    { path: '/payment-terms', name: 'Payment Terms', component: PaymentTermsList, meta: { icon: '⏱️' } },
+    { path: '/payment-terms', name: 'Payment Terms', component: PaymentTermsList, meta: { icon: '⏱️', section: 'planning' } },
     { path: '/payment-terms/new', name: 'New Payment Term', component: PaymentTermForm, meta: { icon: '⏱️', hidden: true } },
     { path: '/payment-terms/:id/edit', name: 'Edit Payment Term', component: PaymentTermForm, meta: { icon: '⏱️', hidden: true } },
 
     // Terms & Conditions
-    { path: '/terms-conditions', name: 'Terms & Conditions', component: TermsTemplatesList, meta: { icon: '📜' } },
+    { path: '/terms-conditions', name: 'Terms & Conditions', component: TermsTemplatesList, meta: { icon: '📜', section: 'planning' } },
     { path: '/terms-conditions/new', name: 'New Terms Template', component: TermsTemplateForm, meta: { icon: '📜', hidden: true } },
     { path: '/terms-conditions/:id/edit', name: 'Edit Terms Template', component: TermsTemplateForm, meta: { icon: '📜', hidden: true } },
 
     // Shipping
-    { path: '/shipping', name: 'Shipping', component: ShippingMethodsList, meta: { icon: '🚚' } },
+    { path: '/shipping', name: 'Shipping', component: ShippingMethodsList, meta: { icon: '🚚', section: 'planning' } },
     { path: '/shipping/new', name: 'New Shipping Method', component: ShippingMethodForm, meta: { icon: '🚚', hidden: true } },
     { path: '/shipping/:id/edit', name: 'Edit Shipping Method', component: ShippingMethodForm, meta: { icon: '🚚', hidden: true } },
 
     // Invoices
-    { path: '/invoices', name: 'Invoices', component: InvoicesList, meta: { icon: '🧾' } },
+    { path: '/invoices', name: 'Invoices', component: InvoicesList, meta: { icon: '🧾', section: 'transactions' } },
     { path: '/invoices/new', name: 'New Invoice', component: Invoices, meta: { icon: '🧾', hidden: true } },
     { path: '/invoices/:id', name: 'Invoice', component: InvoiceView, meta: { icon: '🧾', hidden: true } },
     { path: '/invoices/:id/edit', name: 'Edit Invoice', component: Invoices, meta: { icon: '🧾', hidden: true } },
 
     // Standalone POS Receipt
-    { path: '/receipt', name: 'POS Receipt', component: PosReceipt, meta: { icon: '🧾' } },
-
-    // Standalone POS Receipt
-    { path: '/receipt', name: 'POS Receipt', component: StandalonePosReceipt, meta: { icon: '' } },
+    { path: '/receipt', name: 'POS Receipt', component: StandalonePosReceipt, meta: { icon: '🧾', section: 'transactions' } },
 
     // Credit Notes
-    { path: '/credit-notes', name: 'Credit Notes', component: CreditNotesList, meta: { icon: '↩️' } },
+    { path: '/credit-notes', name: 'Credit Notes', component: CreditNotesList, meta: { icon: '↩️', section: 'transactions' } },
     { path: '/credit-notes/new', name: 'New Credit Note', component: CreditNotes, meta: { icon: '↩️', hidden: true } },
     { path: '/credit-notes/:id', name: 'Credit Note', component: CreditNoteView, meta: { icon: '↩️', hidden: true } },
     { path: '/credit-notes/:id/edit', name: 'Edit Credit Note', component: CreditNotes, meta: { icon: '↩️', hidden: true } },
 
     // Settings
-    { path: '/settings', name: 'Settings', component: Settings, meta: { icon: '⚙️' } },
+    { path: '/settings', name: 'Settings', component: Settings, meta: { icon: '⚙️', section: 'settings' } },
   ],
 })
 
