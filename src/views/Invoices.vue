@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import SectionCard from '../components/SectionCard.vue'
 import LineItemsEditor from '../components/LineItemsEditor.vue'
 import { store, uid } from '../store'
+import { useToast } from '../utils/toast'
 
 const today = () => new Date().toISOString().slice(0,10)
 const draft = reactive({
@@ -35,6 +36,7 @@ const itemsEditor = ref(null)
 const printRef = ref(null)
 const route = useRoute()
 const router = useRouter()
+const toast = useToast()
 
 onMounted(() => {
   if (route.params.id) {
@@ -259,8 +261,62 @@ function autoNumber() {
   // increment sequence
   invSet.nextNumber = Number(invSet.nextNumber || 1) + 1
 }
+function validateForm() {
+  // Validate invoice number
+  if (!draft.number && !store.settings?.invoice?.autoNumberOnSave) {
+    toast.error('Validation Error', 'Invoice number is required')
+    return false
+  }
+
+  // Validate invoice date
+  if (!draft.date) {
+    toast.error('Validation Error', 'Invoice date is required')
+    return false
+  }
+
+  // Validate due date
+  if (!draft.dueDate) {
+    toast.error('Validation Error', 'Due date is required')
+    return false
+  }
+
+  // Validate merchant
+  if (!draft.merchantId) {
+    toast.error('Validation Error', 'Please select a merchant')
+    return false
+  }
+
+  // Validate customer
+  if (!draft.customerId) {
+    toast.error('Validation Error', 'Please select a customer')
+    return false
+  }
+
+  // Validate line items exist
+  if (!draft.items || draft.items.length === 0) {
+    toast.error('Validation Error', 'At least one line item is required')
+    return false
+  }
+
+  // Validate each line item
+  for (let i = 0; i < draft.items.length; i++) {
+    const item = draft.items[i]
+    if (!item.productId && !item.description) {
+      toast.error('Validation Error', `Line item ${i + 1}: Product or description is required`)
+      return false
+    }
+    if (!item.qty || Number(item.qty) <= 0) {
+      toast.error('Validation Error', `Line item ${i + 1}: Quantity must be greater than 0`)
+      return false
+    }
+  }
+
+  return true
+}
 function save() {
-  if (!draft.merchantId || !draft.customerId) return
+  // Validate form before saving
+  if (!validateForm()) return
+
   if (!draft.number && store.settings?.invoice?.autoNumberOnSave) autoNumber()
   if (!draft.id) draft.id = uid('inv_')
   // compute and persist fee based on editable amount / free flag
@@ -268,7 +324,7 @@ function save() {
   const copy = JSON.parse(JSON.stringify(draft))
   const idx = store.invoices.findIndex(x=>x.id===copy.id)
   if (idx === -1) store.invoices.push(copy); else store.invoices.splice(idx,1,copy)
-  window.alert('Invoice saved')
+  toast.success('Saved', 'Invoice saved successfully')
 }
 function printInvoice() {
   if (!printRef?.value) return

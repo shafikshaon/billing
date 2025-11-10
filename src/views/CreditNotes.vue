@@ -4,10 +4,12 @@ import { useRoute, useRouter } from 'vue-router'
 import SectionCard from '../components/SectionCard.vue'
 import LineItemsEditor from '../components/LineItemsEditor.vue'
 import { store, uid, upsert } from '../store'
+import { useToast } from '../utils/toast'
 
 const today = () => new Date().toISOString().slice(0,10)
 const route = useRoute()
 const router = useRouter()
+const toast = useToast()
 const printRef = ref(null)
 
 const draft = reactive({
@@ -124,6 +126,53 @@ function autoNumber() {
   const prefix = s.prefix || 'CN-'
   draft.number = `${prefix}${String(next).padStart(pad, '0')}`
   s.nextNumber = next + 1
+}
+
+function validateForm() {
+  // Validate credit note number
+  if (!draft.number && !store.settings?.creditNote?.autoNumberOnSave) {
+    toast.error('Validation Error', 'Credit note number is required')
+    return false
+  }
+
+  // Validate date
+  if (!draft.date) {
+    toast.error('Validation Error', 'Date is required')
+    return false
+  }
+
+  // Validate merchant
+  if (!draft.merchantId) {
+    toast.error('Validation Error', 'Please select a merchant')
+    return false
+  }
+
+  // Validate customer
+  if (!draft.customerId) {
+    toast.error('Validation Error', 'Please select a customer')
+    return false
+  }
+
+  // Validate line items exist
+  if (!draft.items || draft.items.length === 0) {
+    toast.error('Validation Error', 'At least one line item is required')
+    return false
+  }
+
+  // Validate each line item
+  for (let i = 0; i < draft.items.length; i++) {
+    const item = draft.items[i]
+    if (!item.productId && !item.description) {
+      toast.error('Validation Error', `Line item ${i + 1}: Product or description is required`)
+      return false
+    }
+    if (!item.qty || Number(item.qty) <= 0) {
+      toast.error('Validation Error', `Line item ${i + 1}: Quantity must be greater than 0`)
+      return false
+    }
+  }
+
+  return true
 }
 
 function ensureWindow() { return typeof window !== 'undefined' ? window : null }
@@ -248,6 +297,9 @@ async function downloadPdf() {
 }
 
 function save() {
+  // Validate form before saving
+  if (!validateForm()) return
+
   // Assign id for new CN
   if (!draft.id) draft.id = uid('cn_')
   // Auto number on save if configured and number empty
@@ -256,6 +308,7 @@ function save() {
   }
   const payload = JSON.parse(JSON.stringify(draft))
   upsert(store.creditNotes, payload, 'id')
+  toast.success('Saved', 'Credit note saved successfully')
   router.push(`/credit-notes/${draft.id}`)
 }
 </script>

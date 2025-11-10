@@ -2,6 +2,9 @@
 import { reactive, watch } from 'vue'
 import SectionCard from '../components/SectionCard.vue'
 import { store } from '../store'
+import { useToast } from '../utils/toast'
+
+const toast = useToast()
 
 const form = reactive({
   prefix: store.settings.invoice?.prefix || 'INV-',
@@ -14,7 +17,25 @@ const form = reactive({
   defaultShippingMethodId: store.settings.invoice?.defaultShippingMethodId || ''
 })
 
+function validateForm() {
+  if (!form.prefix?.trim()) {
+    toast.error('Validation Error', 'Invoice number prefix is required')
+    return false
+  }
+  if (!form.nextNumber || form.nextNumber < 1) {
+    toast.error('Validation Error', 'Next number must be at least 1')
+    return false
+  }
+  if (form.zeroPad < 0) {
+    toast.error('Validation Error', 'Zero pad cannot be negative')
+    return false
+  }
+  return true
+}
+
 function save() {
+  if (!validateForm()) return
+
   store.settings.invoice = {
     ...store.settings.invoice,
     prefix: form.prefix,
@@ -26,7 +47,7 @@ function save() {
     defaultTermsTemplateId: form.defaultTermsTemplateId,
     defaultShippingMethodId: form.defaultShippingMethodId
   }
-  alert('Settings saved')
+  toast.success('Saved', 'Settings saved successfully')
 }
 </script>
 

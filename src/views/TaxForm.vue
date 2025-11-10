@@ -3,9 +3,11 @@ import { reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SectionCard from '../components/SectionCard.vue'
 import { store, uid, upsert } from '../store'
+import { useToast } from '../utils/toast'
 
 const route = useRoute()
 const router = useRouter()
+const toast = useToast()
 const isEdit = route.path.endsWith('/edit')
 const editingId = isEdit ? route.params.id : null
 
@@ -18,14 +20,30 @@ onMounted(() => {
   }
 })
 
+function validateForm() {
+  if (!draft.name?.trim()) {
+    toast.error('Validation Error', 'Tax name is required')
+    return false
+  }
+  if (draft.rate < 0) {
+    toast.error('Validation Error', 'Tax rate must be 0 or greater')
+    return false
+  }
+  if (draft.rate > 100) {
+    toast.error('Validation Error', 'Tax rate cannot exceed 100%')
+    return false
+  }
+  return true
+}
+
 function cancel(){ router.push('/taxes') }
 function save(){
-  if(!draft.name.trim()) return
-  if(draft.rate < 0) draft.rate = 0
-  if(!draft.id) draft.id = uid('tax_')
+  if (!validateForm()) return
+
+  if (!draft.id) draft.id = uid('tax_')
   const copy = JSON.parse(JSON.stringify(draft))
   upsert(store.taxes, copy)
-  alert('Tax saved')
+  toast.success('Saved', 'Tax saved successfully')
   router.push('/taxes')
 }
 </script>

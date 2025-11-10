@@ -5,13 +5,13 @@ import SectionCard from '../components/SectionCard.vue'
 import { store, removeById } from '../store'
 
 const router = useRouter()
-const search = ref('')
+const searchQuery = ref('')
 const sortAsc = ref(true)
 const page = ref(1)
 const pageSize = 8
 
 const filtered = computed(() => {
-  const q = search.value.trim().toLowerCase()
+  const q = searchQuery.value.trim().toLowerCase()
   let list = store.paymentTerms.slice()
   if (q) list = list.filter(t => t.name?.toLowerCase().includes(q))
   list.sort((a, b) => {
@@ -26,6 +26,9 @@ const pageItems = computed(() => {
   const start = (p - 1) * pageSize
   return filtered.value.slice(start, start + pageSize)
 })
+
+const hasSearchQuery = computed(() => searchQuery.value.trim().length > 0)
+const showEmptyState = computed(() => pageItems.value.length === 0)
 
 function goNew(){ router.push('/payment-terms/new') }
 function editRow(t){ router.push(`/payment-terms/${t.id}/edit`) }
@@ -51,7 +54,15 @@ function summary(t) {
       <SectionCard title="Payment Terms">
         <template #actions>
           <div class="d-flex gap-2">
-            <input class="form-control form-control-sm" placeholder="Search..." v-model="search" />
+            <div class="search-bar">
+              <span class="search-icon">🔍</span>
+              <input
+                type="text"
+                v-model="searchQuery"
+                class="form-control form-control-sm"
+                placeholder="Search payment terms..."
+              />
+            </div>
             <button class="btn btn-sm btn-outline-secondary" type="button" @click="sortAsc=!sortAsc">
               Sort {{ sortAsc ? 'A→Z' : 'Z→A' }}
             </button>
@@ -59,35 +70,51 @@ function summary(t) {
           </div>
         </template>
 
-        <div class="table-wrapper">
-          <table class="table table-sm align-middle">
-            <thead>
-              <tr><th>Name</th><th>Active</th><th>Schedule</th><th class="text-end"></th></tr>
-            </thead>
-            <tbody>
-              <tr v-for="t in pageItems" :key="t.id">
-                <td class="fw-medium">{{ t.name }}</td>
-                <td>{{ t.active ? 'Yes' : 'No' }}</td>
-                <td class="small text-muted">{{ summary(t) }}</td>
-                <td class="text-end">
-                  <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-secondary" @click="editRow(t)">Edit</button>
-                    <button class="btn btn-outline-danger" @click="removeRow(t)">Delete</button>
-                  </div>
-                </td>
-              </tr>
-              <tr v-if="pageItems.length===0"><td colspan="4" class="text-muted">No payment terms found.</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="table-footer">
-          <div class="small text-muted">Page {{ page }} of {{ totalPages }}</div>
-          <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-secondary" :disabled="page<=1" @click="page--">Prev</button>
-            <button class="btn btn-outline-secondary" :disabled="page>=totalPages" @click="page++">Next</button>
+        <div v-if="showEmptyState" class="empty-state">
+          <div class="empty-state-icon">📅</div>
+          <div class="empty-state-title">
+            {{ hasSearchQuery ? 'No payment terms found' : 'No payment terms yet' }}
+          </div>
+          <div class="empty-state-description">
+            {{ hasSearchQuery ? 'Try adjusting your search to find what you\'re looking for.' : 'Get started by adding your first payment term to define invoice payment schedules.' }}
+          </div>
+          <div v-if="!hasSearchQuery" class="empty-state-action">
+            <button class="btn btn-primary" @click="goNew">
+              Add Payment Term
+            </button>
           </div>
         </div>
+
+        <template v-else>
+          <div class="table-wrapper">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr><th>Name</th><th>Active</th><th>Schedule</th><th class="text-end"></th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="t in pageItems" :key="t.id">
+                  <td class="fw-medium">{{ t.name }}</td>
+                  <td>{{ t.active ? 'Yes' : 'No' }}</td>
+                  <td class="small text-muted">{{ summary(t) }}</td>
+                  <td class="text-end">
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-secondary" @click="editRow(t)">Edit</button>
+                      <button class="btn btn-outline-danger" @click="removeRow(t)">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-footer">
+            <div class="small text-muted">Page {{ page }} of {{ totalPages }}</div>
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-outline-secondary" :disabled="page<=1" @click="page--">Prev</button>
+              <button class="btn btn-outline-secondary" :disabled="page>=totalPages" @click="page++">Next</button>
+            </div>
+          </div>
+        </template>
       </SectionCard>
     </div>
   </div>

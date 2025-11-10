@@ -5,9 +5,11 @@ import SectionCard from '../components/SectionCard.vue'
 import AddressListEditor from '../components/AddressListEditor.vue'
 import ContactListEditor from '../components/ContactListEditor.vue'
 import { store, uid, upsert } from '../store'
+import { useToast } from '../utils/toast'
 
 const route = useRoute()
 const router = useRouter()
+const toast = useToast()
 
 const isEdit = route.path.endsWith('/edit')
 const editingId = isEdit ? route.params.id : null
@@ -29,13 +31,22 @@ onMounted(() => {
   }
 })
 
+function validateForm() {
+  if (!draft.name?.trim()) {
+    toast.error('Validation Error', 'Merchant name is required')
+    return false
+  }
+  return true
+}
+
 function cancel() { router.push('/merchants') }
 function save() {
-  if (!draft.name.trim()) return
+  if (!validateForm()) return
+
   if (!draft.id) draft.id = uid('mrc_')
   const copy = JSON.parse(JSON.stringify(draft))
   upsert(store.merchants, copy)
-  alert('Merchant saved')
+  toast.success('Saved', 'Merchant saved successfully')
   router.push('/merchants')
 }
 </script>

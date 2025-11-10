@@ -3,9 +3,11 @@ import { reactive, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SectionCard from '../components/SectionCard.vue'
 import { store, uid, upsert } from '../store'
+import { useToast } from '../utils/toast'
 
 const route = useRoute()
 const router = useRouter()
+const toast = useToast()
 const isEdit = route.path.endsWith('/edit')
 const editingId = isEdit ? route.params.id : null
 
@@ -45,13 +47,34 @@ onMounted(() => {
 
 const isPercent = computed(() => draft.discountType === 'percent')
 
+function validateForm() {
+  if (!draft.name?.trim()) {
+    toast.error('Validation Error', 'Product name is required')
+    return false
+  }
+  if (draft.price < 0) {
+    toast.error('Validation Error', 'Price must be 0 or greater')
+    return false
+  }
+  if (draft.discountType === 'percent' && draft.discountValue > 100) {
+    toast.error('Validation Error', 'Discount percent cannot exceed 100%')
+    return false
+  }
+  if (draft.discountValue < 0) {
+    toast.error('Validation Error', 'Discount value must be 0 or greater')
+    return false
+  }
+  return true
+}
+
 function cancel() { router.push('/products') }
 function save() {
-  if (!draft.name.trim()) return
+  if (!validateForm()) return
+
   if (!draft.id) draft.id = uid('prd_')
   const copy = JSON.parse(JSON.stringify(draft))
   upsert(store.products, copy)
-  alert('Product saved')
+  toast.success('Saved', 'Product saved successfully')
   router.push('/products')
 }
 </script>

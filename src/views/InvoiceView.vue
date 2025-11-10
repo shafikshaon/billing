@@ -365,18 +365,216 @@ function editInvoice() {
 </script>
 
 <template>
-  <div class="row g-3" v-if="invoice">
-    <div class="col-12">
-      <SectionCard :title="`Invoice ${invoice.number}`">
-        <template #actions>
-          <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-secondary" @click="editInvoice">Edit</button>
-            <button class="btn btn-outline-secondary" @click="printInvoice">Print</button>
-              <button class="btn btn-outline-secondary" @click="printReceipt">Receipt</button>
-            <button class="btn btn-outline-secondary" @click="() => router.push(`/credit-notes/new?invoiceId=${invoice.id}`)">New Credit Note</button>
-            <button class="btn btn-primary" @click="downloadPdf">Download PDF</button>
+  <div v-if="invoice">
+    <SectionCard>
+      <template #title>
+        <div class="d-flex align-items-center gap-3">
+          <span>Invoice {{ invoice.number }}</span>
+          <span v-if="invoice.status" :class="['badge', `badge-${invoice.status}`]">{{ invoice.status }}</span>
+        </div>
+      </template>
+      <template #actions>
+        <div class="btn-group btn-group-sm">
+          <button class="btn btn-outline-secondary" @click="editInvoice">Edit</button>
+          <button class="btn btn-outline-secondary" @click="printInvoice">Print</button>
+          <button class="btn btn-outline-secondary" @click="printReceipt">Receipt</button>
+          <button class="btn btn-outline-secondary" @click="() => router.push(`/credit-notes/new?invoiceId=${invoice.id}`)">New Credit Note</button>
+          <button class="btn btn-primary" @click="downloadPdf">Download PDF</button>
+        </div>
+      </template>
+
+      <!-- Invoice Overview -->
+      <div class="detail-section">
+        <h3 class="detail-section-title">Invoice Information</h3>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <div class="detail-label">Invoice Number</div>
+            <div class="detail-value large">{{ invoice.number }}</div>
           </div>
-        </template>
+          <div class="detail-item">
+            <div class="detail-label">Invoice Date</div>
+            <div class="detail-value">{{ invoice.date }}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Due Date</div>
+            <div class="detail-value">{{ invoice.dueDate }}</div>
+          </div>
+          <div class="detail-item" v-if="paymentTerm">
+            <div class="detail-label">Payment Terms</div>
+            <div class="detail-value">{{ paymentTerm.name }}</div>
+          </div>
+          <div class="detail-item" v-if="invoice.paidInFull">
+            <div class="detail-label">Payment Status</div>
+            <div class="detail-value">
+              <span class="badge badge-success">Paid in Full</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Merchant & Customer Info -->
+      <div class="detail-section">
+        <h3 class="detail-section-title">Parties</h3>
+        <div class="detail-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+          <div class="detail-item">
+            <div class="detail-label">From (Merchant)</div>
+            <div class="detail-value">
+              <div class="fw-semibold">{{ merchant?.name }}</div>
+              <div v-if="merchantSelectedAddress" class="text-muted small mt-1">
+                {{ merchantSelectedAddress.line1 }}<br>
+                {{ merchantSelectedAddress.city }} {{ merchantSelectedAddress.zip }}
+              </div>
+              <div v-if="merchantSelectedContact" class="text-muted small mt-1">
+                {{ merchantSelectedContact.name }}<br>
+                <span v-if="merchantSelectedContact.email">{{ merchantSelectedContact.email }}</span>
+                <span v-if="merchantSelectedContact.phone"> · {{ merchantSelectedContact.phone }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">To (Customer)</div>
+            <div class="detail-value">
+              <div class="fw-semibold">{{ customer?.name }}</div>
+              <div v-if="customerSelectedAddress" class="text-muted small mt-1">
+                {{ customerSelectedAddress.line1 }}<br>
+                {{ customerSelectedAddress.city }} {{ customerSelectedAddress.zip }}
+              </div>
+              <div v-if="customerSelectedContact" class="text-muted small mt-1">
+                {{ customerSelectedContact.name }}<br>
+                <span v-if="customerSelectedContact.email">{{ customerSelectedContact.email }}</span>
+                <span v-if="customerSelectedContact.phone"> · {{ customerSelectedContact.phone }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Line Items -->
+      <div class="detail-section">
+        <h3 class="detail-section-title">Line Items</h3>
+        <div class="table-responsive">
+          <table class="table table-sm table-invoice align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Product / Description</th>
+                <th class="text-end">Qty</th>
+                <th class="text-end">Unit Price</th>
+                <th class="text-end">Discount</th>
+                <th class="text-end">Line Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="it in invoice.items" :key="it.id">
+                <td>
+                  <div class="fw-medium">{{ productById(it.productId)?.name || it.description || '—' }}</div>
+                  <div v-if="it.description && productById(it.productId)?.name !== it.description" class="text-muted small">{{ it.description }}</div>
+                </td>
+                <td class="text-end">{{ it.qty }}</td>
+                <td class="text-end">{{ Number(it.unitPrice||0).toFixed(2) }}</td>
+                <td class="text-end">
+                  <span v-if="(it.discountType||'none')==='percent'">-{{ Number(it.discountValue||0).toFixed(0) }}%</span>
+                  <span v-else-if="(it.discountType||'none')==='fixed'">-{{ (Number(it.discountValue||0)*Number(it.qty||0)).toFixed(2) }}</span>
+                  <span v-else>—</span>
+                </td>
+                <td class="text-end fw-semibold">{{ lineNet(it).toFixed(2) }}</td>
+              </tr>
+              <tr v-if="!invoice.items || !invoice.items.length">
+                <td colspan="5" class="text-center text-muted">No items</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Totals -->
+      <div class="detail-section">
+        <h3 class="detail-section-title">Totals</h3>
+        <div class="totals-container">
+          <div class="totals-grid">
+            <div class="totals-row">
+              <span class="totals-label">Subtotal</span>
+              <span class="totals-value">{{ totals.sub.toFixed(2) }}</span>
+            </div>
+            <div class="totals-row">
+              <span class="totals-label">Tax</span>
+              <span class="totals-value">{{ totals.tax.toFixed(2) }}</span>
+            </div>
+            <div class="totals-row">
+              <span class="totals-label">Shipping</span>
+              <span class="totals-value">
+                <template v-if="invoice.shippingFree">
+                  <span class="text-decoration-line-through text-muted">{{ Number(invoice.shippingAmount||0).toFixed(2) }}</span>
+                  <span class="ms-1">0.00</span>
+                </template>
+                <template v-else>
+                  {{ totals.shipping.toFixed(2) }}
+                </template>
+              </span>
+            </div>
+            <div class="totals-row totals-grand">
+              <span class="totals-label">Total</span>
+              <span class="totals-value">{{ totals.total.toFixed(2) }}</span>
+            </div>
+            <div class="totals-row" v-if="creditsTotal > 0">
+              <span class="totals-label">Credits Applied</span>
+              <span class="totals-value text-success">-{{ creditsTotal.toFixed(2) }}</span>
+            </div>
+            <div class="totals-row" v-if="invoice.paidInFull || Number(invoice.receivedAmount||0) > 0">
+              <span class="totals-label">Received</span>
+              <span class="totals-value">{{ Number(invoice.receivedAmount||0).toFixed(2) }}</span>
+            </div>
+            <div class="totals-row" v-if="Number(invoice.changeAmount||0) > 0">
+              <span class="totals-label">Change</span>
+              <span class="totals-value">{{ Number(invoice.changeAmount||0).toFixed(2) }}</span>
+            </div>
+            <div class="totals-row totals-balance" v-if="invoice.paidInFull || Number(invoice.receivedAmount||0) > 0 || creditsTotal>0">
+              <span class="totals-label">Balance Due</span>
+              <span class="totals-value">{{ Math.max(0, totals.total - creditsTotal - Number(invoice.receivedAmount||0)).toFixed(2) }}</span>
+            </div>
+          </div>
+          <div v-if="shippingMethod" class="text-muted small mt-2">
+            Shipping via {{ shippingMethod.name }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Schedule -->
+      <div class="detail-section" v-if="paymentTerm && !invoice.paidInFull && scheduleRows.length">
+        <h3 class="detail-section-title">Payment Schedule — {{ paymentTerm?.name }}</h3>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead class="table-light">
+              <tr>
+                <th>Installment</th>
+                <th>Date</th>
+                <th class="text-end">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="r in scheduleRows" :key="r[0] + r[1]">
+                <td>{{ r[0] }}</td>
+                <td>{{ r[1] }}</td>
+                <td class="text-end">{{ Number(r[2]).toFixed(2) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Terms & Notes -->
+      <div class="detail-section" v-if="termsTpl?.content || invoice.notes">
+        <h3 class="detail-section-title">Additional Information</h3>
+        <div v-if="termsTpl?.content" class="mb-3">
+          <div class="detail-label mb-2">Terms</div>
+          <div class="detail-value" style="white-space:pre-wrap;">{{ termsTpl.content }}</div>
+        </div>
+        <div v-if="invoice.notes">
+          <div class="detail-label mb-2">Notes</div>
+          <div class="detail-value" style="white-space:pre-wrap;">{{ invoice.notes }}</div>
+        </div>
+      </div>
+
+      <!-- Hidden print areas below -->
 
         <div class="print-area" ref="printRef">
           <div class="d-flex justify-content-between mb-3">
@@ -603,11 +801,182 @@ function editInvoice() {
           <div class="center small" style="margin-top:6px">Thank you!</div>
         </div>
 
-      </SectionCard>
-    </div>
+    </SectionCard>
   </div>
-  <div v-else class="text-muted">Invoice not found.</div>
+  <div v-else class="empty-state">Invoice not found.</div>
 </template>
+
+<style scoped>
+.detail-section {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.detail-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 400;
+}
+
+.detail-value.large {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.totals-container {
+  max-width: 400px;
+  margin-left: auto;
+}
+
+.totals-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.totals-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.totals-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.totals-value {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.totals-grand {
+  border-top: 2px solid var(--border-color);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+.totals-grand .totals-label,
+.totals-grand .totals-value {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.totals-balance {
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+.totals-balance .totals-label,
+.totals-balance .totals-value {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.badge-draft {
+  background-color: #e0e0e0;
+  color: #424242;
+}
+
+.badge-pending {
+  background-color: #fff9c4;
+  color: #f57f17;
+}
+
+.badge-sent {
+  background-color: #b3e5fc;
+  color: #01579b;
+}
+
+.badge-paid {
+  background-color: #c8e6c9;
+  color: #2e7d32;
+}
+
+.badge-overdue {
+  background-color: #ffccbc;
+  color: #d84315;
+}
+
+.badge-void {
+  background-color: #f5f5f5;
+  color: #757575;
+}
+
+.badge-success {
+  background-color: #c8e6c9;
+  color: #2e7d32;
+}
+
+.empty-state {
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-align: center;
+  padding: 32px;
+  font-style: italic;
+}
+
+.print-area {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .totals-container {
+    max-width: 100%;
+  }
+}
+</style>
 
 <style>
 /* POS receipt base (hidden on screen) */

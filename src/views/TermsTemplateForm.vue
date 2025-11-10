@@ -3,9 +3,11 @@ import { reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SectionCard from '../components/SectionCard.vue'
 import { store, uid, upsert } from '../store'
+import { useToast } from '../utils/toast'
 
 const route = useRoute()
 const router = useRouter()
+const toast = useToast()
 const isEdit = route.path.endsWith('/edit')
 const editingId = isEdit ? route.params.id : null
 
@@ -18,13 +20,26 @@ onMounted(() => {
   }
 })
 
+function validateForm() {
+  if (!draft.name?.trim()) {
+    toast.error('Validation Error', 'Template name is required')
+    return false
+  }
+  if (!draft.content?.trim()) {
+    toast.error('Validation Error', 'Template content is required')
+    return false
+  }
+  return true
+}
+
 function cancel(){ router.push('/terms-conditions') }
 function save(){
-  if(!draft.name.trim()) return
-  if(!draft.id) draft.id = uid('tc_')
+  if (!validateForm()) return
+
+  if (!draft.id) draft.id = uid('tc_')
   const copy = JSON.parse(JSON.stringify(draft))
   upsert(store.termsTemplates, copy)
-  alert('Template saved')
+  toast.success('Saved', 'Template saved successfully')
   router.push('/terms-conditions')
 }
 </script>

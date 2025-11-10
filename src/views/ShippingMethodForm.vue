@@ -3,9 +3,11 @@ import { reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SectionCard from '../components/SectionCard.vue'
 import { store, uid, upsert } from '../store'
+import { useToast } from '../utils/toast'
 
 const route = useRoute()
 const router = useRouter()
+const toast = useToast()
 const isEdit = route.path.endsWith('/edit')
 const editingId = isEdit ? route.params.id : null
 
@@ -29,13 +31,46 @@ onMounted(() => {
   }
 })
 
+function validateForm() {
+  if (!draft.name?.trim()) {
+    toast.error('Validation Error', 'Shipping method name is required')
+    return false
+  }
+  if (draft.amount < 0) {
+    toast.error('Validation Error', 'Amount must be 0 or greater')
+    return false
+  }
+  if (draft.chargeType === 'percent' && draft.amount > 100) {
+    toast.error('Validation Error', 'Percent charge cannot exceed 100%')
+    return false
+  }
+  if (draft.freeThreshold < 0) {
+    toast.error('Validation Error', 'Free threshold must be 0 or greater')
+    return false
+  }
+  if (draft.leadDaysMin < 0) {
+    toast.error('Validation Error', 'Minimum lead days must be 0 or greater')
+    return false
+  }
+  if (draft.leadDaysMax < 0) {
+    toast.error('Validation Error', 'Maximum lead days must be 0 or greater')
+    return false
+  }
+  if (draft.leadDaysMax > 0 && draft.leadDaysMin > draft.leadDaysMax) {
+    toast.error('Validation Error', 'Minimum lead days cannot exceed maximum lead days')
+    return false
+  }
+  return true
+}
+
 function cancel(){ router.push('/shipping') }
 function save(){
-  if(!draft.name.trim()) return
-  if(!draft.id) draft.id = uid('ship_')
+  if (!validateForm()) return
+
+  if (!draft.id) draft.id = uid('ship_')
   const copy = JSON.parse(JSON.stringify(draft))
   upsert(store.shippingMethods, copy)
-  alert('Shipping method saved')
+  toast.success('Saved', 'Shipping method saved successfully')
   router.push('/shipping')
 }
 </script>
