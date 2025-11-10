@@ -46,21 +46,21 @@ const router = createRouter({
     { path: '/dashboard', name: 'Dashboard', component: Dashboard, meta: { icon: '📊', section: 'main' } },
 
     // Merchants
-    { path: '/merchants', name: 'Merchants', component: MerchantsList, meta: { icon: '🏢', section: 'accounts' } },
+    { path: '/merchants', name: 'Merchants', component: MerchantsList, meta: { icon: '🏢', section: 'main' } },
     { path: '/merchants/new', name: 'New Merchant', component: MerchantForm, meta: { icon: '🏢', hidden: true } },
     { path: '/merchants/:id', name: 'Merchant', component: MerchantView, meta: { icon: '🏢', hidden: true } },
     { path: '/merchants/:id/edit', name: 'Edit Merchant', component: MerchantForm, meta: { icon: '🏢', hidden: true } },
     { path: '/merchants/bulk-import', name: 'Bulk Import Merchants', component: BulkImportMerchants, meta: { icon: '📥', hidden: true } },
 
     // Customers
-    { path: '/customers', name: 'Customers', component: CustomersList, meta: { icon: '👤', section: 'accounts' } },
+    { path: '/customers', name: 'Customers', component: CustomersList, meta: { icon: '👤', section: 'main' } },
     { path: '/customers/new', name: 'New Customer', component: CustomerForm, meta: { icon: '👤', hidden: true } },
     { path: '/customers/:id', name: 'Customer', component: CustomerView, meta: { icon: '👤', hidden: true } },
     { path: '/customers/:id/edit', name: 'Edit Customer', component: CustomerForm, meta: { icon: '👤', hidden: true } },
     { path: '/customers/bulk-import', name: 'Bulk Import Customers', component: BulkImportCustomers, meta: { icon: '📥', hidden: true } },
 
     // Products
-    { path: '/products', name: 'Products', component: ProductsList, meta: { icon: '📦', section: 'accounts' } },
+    { path: '/products', name: 'Products', component: ProductsList, meta: { icon: '📦', section: 'main' } },
     { path: '/products/new', name: 'New Product', component: ProductForm, meta: { icon: '📦', hidden: true } },
     { path: '/products/:id', name: 'Product', component: ProductView, meta: { icon: '📦', hidden: true } },
     { path: '/products/:id/edit', name: 'Edit Product', component: ProductForm, meta: { icon: '📦', hidden: true } },

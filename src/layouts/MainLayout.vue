@@ -6,11 +6,12 @@ import { resetStore } from '../store'
 
 const route = useRoute()
 
+const sectionOrder = ['main', 'transactions', 'planning', 'settings']
+
 const sectionTitles = {
-  main: '',
-  accounts: 'ACCOUNTS & TRANSACTIONS',
-  planning: 'PLANNING & BUDGETS',
+  main: 'ACCOUNTS & TRANSACTIONS',
   transactions: '',
+  planning: 'PLANNING & BUDGETS',
   settings: 'SETTINGS'
 }
 
@@ -30,7 +31,15 @@ const groupedRoutes = computed(() => {
     groups[r.section].push(r)
   })
 
-  return groups
+  // Return groups in the correct order
+  const orderedGroups = {}
+  sectionOrder.forEach(section => {
+    if (groups[section]) {
+      orderedGroups[section] = groups[section]
+    }
+  })
+
+  return orderedGroups
 })
 
 function onResetClick() {
@@ -104,7 +113,7 @@ function onResetClick() {
   display: flex;
   height: 100vh;
   overflow: hidden;
-  background: #fafafa;
+  background: var(--bg-primary);
 }
 
 /* ========================================
@@ -112,7 +121,7 @@ function onResetClick() {
    ======================================== */
 
 .stripe-sidebar {
-  width: 200px;
+  width: 240px;
   background: var(--sidebar-bg);
   border-right: 1px solid var(--sidebar-border);
   display: flex;
@@ -123,53 +132,54 @@ function onResetClick() {
 }
 
 .sidebar-header {
-  padding: 12px;
+  padding: 16px;
   border-bottom: 1px solid var(--sidebar-border);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .brand-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: var(--stripe-purple);
-  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  background: var(--primary-purple);
+  border-radius: var(--radius-md);
   color: white;
+  flex-shrink: 0;
 }
 
 .brand-icon svg {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 .brand-text {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 12px 0;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 2px;
   overflow-y: auto;
 }
 
 .nav-section-title {
-  padding: 16px 16px 8px 16px;
-  font-size: 10px;
+  padding: 16px 12px 8px 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
@@ -177,16 +187,16 @@ function onResetClick() {
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
-  border-radius: 0;
-  color: var(--text-primary);
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
   text-decoration: none;
-  font-size: 13px;
-  font-weight: 400;
+  font-size: 14px;
+  font-weight: 500;
   transition: all var(--transition-fast);
   position: relative;
-  border-left: 3px solid transparent;
+  letter-spacing: -0.01em;
 }
 
 .nav-item:hover {
@@ -196,19 +206,19 @@ function onResetClick() {
 
 .nav-item.active {
   background: var(--sidebar-active-bg);
-  color: var(--text-primary);
-  font-weight: 500;
-  border-left-color: var(--primary-purple);
+  color: var(--sidebar-active-text);
+  font-weight: 600;
 }
 
 .nav-icon {
-  font-size: 16px;
-  width: 16px;
+  font-size: 18px;
+  width: 18px;
   text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
   color: inherit;
+  flex-shrink: 0;
 }
 
 .nav-label {
@@ -216,21 +226,25 @@ function onResetClick() {
 }
 
 .sidebar-footer {
-  padding: 10px;
+  padding: 16px;
   border-top: 1px solid var(--sidebar-border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .sidebar-footer .btn {
-  font-size: 12px;
-  padding: 5px 10px;
+  font-size: 13px;
+  padding: 8px 12px;
+  width: 100%;
 }
 
 .version {
   text-align: center;
-  font-size: 10px;
-  color: var(--text-tertiary);
-  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
   font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
 /* ========================================
@@ -243,7 +257,7 @@ function onResetClick() {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  background: #fafafa;
+  background: var(--bg-primary);
 }
 
 .main-header {
@@ -252,33 +266,34 @@ function onResetClick() {
   position: sticky;
   top: 0;
   z-index: 10;
+  box-shadow: var(--shadow-xs);
 }
 
 .header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 16px;
-  min-height: 48px;
+  padding: 16px 24px;
+  min-height: 64px;
 }
 
 .header-title {
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 600;
   color: var(--text-primary);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .header-actions {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
 }
 
 .main-body {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: 24px;
 }
 
 /* ========================================
@@ -302,15 +317,15 @@ function onResetClick() {
 
 @media (max-width: 992px) {
   .stripe-sidebar {
-    width: 200px;
+    width: 220px;
   }
 
   .header-content {
-    padding: 0.75rem 1rem;
+    padding: 16px 20px;
   }
 
   .main-body {
-    padding: 1rem;
+    padding: 20px;
   }
 
   :deep(main form) {
@@ -320,16 +335,29 @@ function onResetClick() {
 
 @media (max-width: 768px) {
   .stripe-sidebar {
-    width: 180px;
+    width: 200px;
   }
 
   .brand-text {
-    font-size: 0.9375rem;
+    font-size: 14px;
   }
 
   .nav-item {
-    padding: 0.375rem 0.625rem;
-    font-size: 0.8125rem;
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .header-content {
+    padding: 12px 16px;
+    min-height: 56px;
+  }
+
+  .header-title {
+    font-size: 18px;
+  }
+
+  .main-body {
+    padding: 16px;
   }
 }
 </style>
