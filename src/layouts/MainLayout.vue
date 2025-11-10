@@ -103,30 +103,30 @@ function onResetClick() {
 }
 
 .sidebar-header {
-  padding: 1rem 1.25rem;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border-color);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.625rem;
 }
 
 .brand-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   background: var(--stripe-purple);
-  border-radius: 0.5rem;
+  border-radius: 0.375rem;
   color: white;
   box-shadow: var(--shadow-sm);
 }
 
 .brand-text {
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.02em;
@@ -134,7 +134,7 @@ function onResetClick() {
 
 .sidebar-nav {
   flex: 1;
-  padding: 0.75rem;
+  padding: 0.625rem;
   display: flex;
   flex-direction: column;
   gap: 0.125rem;
@@ -143,12 +143,12 @@ function onResetClick() {
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.375rem;
+  gap: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: 0.25rem;
   color: var(--text-secondary);
   text-decoration: none;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   transition: all var(--transition-base);
   position: relative;
@@ -191,15 +191,15 @@ function onResetClick() {
 }
 
 .sidebar-footer {
-  padding: 0.75rem 1rem;
+  padding: 0.625rem 0.75rem;
   border-top: 1px solid var(--border-color);
 }
 
 .version {
   text-align: center;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   color: var(--text-secondary);
-  margin-top: 0.75rem;
+  margin-top: 0.5rem;
   font-weight: 500;
 }
 
@@ -228,11 +228,11 @@ function onResetClick() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1rem;
 }
 
 .header-title {
-  font-size: 1.375rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.02em;
@@ -240,13 +240,13 @@ function onResetClick() {
 
 .header-actions {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .main-body {
   flex: 1;
   overflow-y: auto;
-  padding: 1.5rem;
+  padding: 1rem;
 }
 
 /* ========================================
@@ -270,15 +270,15 @@ function onResetClick() {
 
 @media (max-width: 992px) {
   .stripe-sidebar {
-    width: 220px;
+    width: 200px;
   }
 
   .header-content {
-    padding: 1rem 1.5rem;
+    padding: 0.75rem 1rem;
   }
 
   .main-body {
-    padding: 1.5rem;
+    padding: 1rem;
   }
 
   :deep(main form) {
@@ -288,16 +288,16 @@ function onResetClick() {
 
 @media (max-width: 768px) {
   .stripe-sidebar {
-    width: 200px;
+    width: 180px;
   }
 
   .brand-text {
-    font-size: 1.125rem;
+    font-size: 0.9375rem;
   }
 
   .nav-item {
-    padding: 0.625rem 0.875rem;
-    font-size: 0.875rem;
+    padding: 0.375rem 0.625rem;
+    font-size: 0.8125rem;
   }
 }
 </style>
