@@ -250,9 +250,8 @@ function onResetClick() {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 12px;
+  padding: 4px 6px;
   margin: 0 0 1px 0;
-  border-radius: var(--radius-md);
   color: var(--text-secondary);
   text-decoration: none;
   font-size: 14px;
@@ -268,9 +267,8 @@ function onResetClick() {
 }
 
 .nav-item.active {
-  background: var(--sidebar-active-bg);
-  color: var(--sidebar-active-text);
-  font-weight: 600;
+  color: var(--primary-purple);
+  font-weight: bolder;
   box-shadow: inset 3px 0 0 0 var(--primary-purple);
 }
 
