@@ -2,156 +2,102 @@
 import { computed } from 'vue'
 import { store } from '../store'
 
-const paidInvoices = computed(() =>
-  store.invoices.filter(inv => inv.status === 'paid').length
-)
+// Sample expense data - this will be replaced with store data later
+const totalBalance = 471091.36
+const monthlyIncome = 0.00
+const monthlyExpenses = 48264.62
 
-const draftInvoices = computed(() =>
-  store.invoices.filter(inv => inv.status === 'draft').length
-)
+const recentTransactions = [
+  { id: 1, category: 'Housing', date: 'Nov 10', amount: -320.00 },
+  { id: 2, category: 'donation', date: 'Nov 10', amount: -212.00 },
+  { id: 3, category: 'Transportation', date: 'Nov 10', amount: -140.00 },
+  { id: 4, category: 'Transportation', date: 'Nov 10', amount: -130.00 }
+]
 
-const totalRevenue = computed(() => {
-  return store.invoices
-    .filter(inv => inv.status === 'paid')
-    .reduce((sum, inv) => {
-      const items = inv.items || []
-      const subtotal = items.reduce((s, item) => {
-        const price = item.unitPrice || 0
-        const qty = item.qty || 0
-        let lineTotal = price * qty
-
-        if (item.discountType === 'fixed') {
-          lineTotal -= (item.discountValue || 0)
-        } else if (item.discountType === 'percent') {
-          lineTotal -= lineTotal * ((item.discountValue || 0) / 100)
-        }
-
-        return s + lineTotal
-      }, 0)
-      return sum + subtotal
-    }, 0)
-})
+const budgets = [
+  { category: 'donation', spent: 550.00, total: 5000.00 },
+  { category: 'Food & Dining', spent: 3489.81, total: 10000.00 },
+  { category: 'Transportation', spent: 880.00, total: 5000.00 }
+]
 
 const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: store.settings?.currency || 'BDT',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount)
+  return '৳' + Math.abs(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
+const getProgressPercent = (spent, total) => {
+  return Math.min((spent / total) * 100, 100)
+}
+
+const getProgressColor = (percent) => {
+  if (percent < 50) return '#00d924'
+  if (percent < 80) return '#00d4ff'
+  return '#ff4d4f'
 }
 </script>
 
 <template>
   <div class="dashboard-container">
+    <!-- Page Title -->
+    <h1 class="page-title">Dashboard</h1>
+
     <!-- Metrics Grid -->
     <div class="metrics-grid">
       <div class="metric-card">
-        <div class="metric-label">Total Revenue</div>
-        <div class="metric-value">{{ formatCurrency(totalRevenue) }}</div>
-        <div class="metric-change neutral">From paid invoices</div>
+        <div class="metric-icon">💰</div>
+        <div class="metric-value">{{ formatCurrency(totalBalance) }}</div>
+        <div class="metric-label">Total Balance</div>
       </div>
 
       <div class="metric-card">
-        <div class="metric-label">Invoices</div>
-        <div class="metric-value">{{ store.invoices.length }}</div>
-        <div class="metric-change positive" v-if="paidInvoices > 0">
-          {{ paidInvoices }} paid
+        <div class="metric-icon">📈</div>
+        <div class="metric-value">{{ formatCurrency(monthlyIncome) }}</div>
+        <div class="metric-label">Monthly Income</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon">📉</div>
+        <div class="metric-value">{{ formatCurrency(monthlyExpenses) }}</div>
+        <div class="metric-label">Monthly Expenses</div>
+      </div>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="content-grid">
+      <!-- Recent Transactions -->
+      <div class="section-card">
+        <h3 class="section-title">Recent Transactions</h3>
+        <div class="transactions-list">
+          <div v-for="transaction in recentTransactions" :key="transaction.id" class="transaction-item">
+            <div class="transaction-info">
+              <div class="transaction-category">{{ transaction.category }}</div>
+              <div class="transaction-date">{{ transaction.date }}</div>
+            </div>
+            <div class="transaction-amount negative">
+              {{ formatCurrency(transaction.amount) }}
+            </div>
+          </div>
         </div>
-        <div class="metric-change neutral" v-else>No paid invoices</div>
       </div>
 
-      <div class="metric-card">
-        <div class="metric-label">Customers</div>
-        <div class="metric-value">{{ store.customers.length }}</div>
-        <div class="metric-change neutral">Active customers</div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-label">Products</div>
-        <div class="metric-value">{{ store.products.length }}</div>
-        <div class="metric-change neutral">In catalog</div>
-      </div>
-    </div>
-
-    <!-- Quick Links Grid -->
-    <div class="quick-links-section">
-      <div class="section-header">
-        <h3 class="section-title">Quick Actions</h3>
-      </div>
-
-      <div class="quick-links-grid">
-        <router-link to="/invoices/new" class="quick-link-card">
-          <div class="quick-link-icon">📄</div>
-          <div class="quick-link-content">
-            <div class="quick-link-title">Create Invoice</div>
-            <div class="quick-link-description">Generate a new invoice for your customers</div>
-          </div>
-        </router-link>
-
-        <router-link to="/customers/new" class="quick-link-card">
-          <div class="quick-link-icon">👥</div>
-          <div class="quick-link-content">
-            <div class="quick-link-title">Add Customer</div>
-            <div class="quick-link-description">Register a new customer account</div>
-          </div>
-        </router-link>
-
-        <router-link to="/products/new" class="quick-link-card">
-          <div class="quick-link-icon">📦</div>
-          <div class="quick-link-content">
-            <div class="quick-link-title">Add Product</div>
-            <div class="quick-link-description">Add new product to your catalog</div>
-          </div>
-        </router-link>
-
-        <router-link to="/merchants" class="quick-link-card">
-          <div class="quick-link-icon">🏢</div>
-          <div class="quick-link-content">
-            <div class="quick-link-title">Manage Merchants</div>
-            <div class="quick-link-description">Update merchant information</div>
-          </div>
-        </router-link>
-      </div>
-    </div>
-
-    <!-- Getting Started Guide -->
-    <div class="getting-started-section">
-      <div class="section-header">
-        <h3 class="section-title">Getting Started</h3>
-      </div>
-
-      <div class="getting-started-card">
-        <div class="getting-started-steps">
-          <div class="step-item">
-            <div class="step-number">1</div>
-            <div class="step-content">
-              <div class="step-title">Set up your merchant profile</div>
-              <div class="step-description">Add your business information and branding</div>
+      <!-- Budget Overview -->
+      <div class="section-card">
+        <h3 class="section-title">Budget Overview</h3>
+        <div class="budgets-list">
+          <div v-for="budget in budgets" :key="budget.category" class="budget-item">
+            <div class="budget-header">
+              <div class="budget-category">{{ budget.category }}</div>
+              <div class="budget-amounts">
+                {{ formatCurrency(budget.spent) }} / {{ formatCurrency(budget.total) }}
+              </div>
             </div>
-          </div>
-
-          <div class="step-item">
-            <div class="step-number">2</div>
-            <div class="step-content">
-              <div class="step-title">Add customers</div>
-              <div class="step-description">Import or create customer records</div>
-            </div>
-          </div>
-
-          <div class="step-item">
-            <div class="step-number">3</div>
-            <div class="step-content">
-              <div class="step-title">Configure products and pricing</div>
-              <div class="step-description">Set up your product catalog, taxes, and payment terms</div>
-            </div>
-          </div>
-
-          <div class="step-item">
-            <div class="step-number">4</div>
-            <div class="step-content">
-              <div class="step-title">Create your first invoice</div>
-              <div class="step-description">Generate and send invoices to your customers</div>
+            <div class="budget-progress-bar">
+              <div
+                class="budget-progress-fill"
+                :style="{
+                  width: getProgressPercent(budget.spent, budget.total) + '%',
+                  backgroundColor: getProgressColor(getProgressPercent(budget.spent, budget.total))
+                }"
+              ></div>
             </div>
           </div>
         </div>
@@ -167,94 +113,67 @@ const formatCurrency = (amount) => {
   margin: 0 auto;
 }
 
+/* Page Title */
+.page-title {
+  font-size: 32px;
+  font-weight: 600;
+  color: #635bff;
+  margin: 0 0 24px 0;
+  letter-spacing: -0.02em;
+}
+
 /* Metrics Grid */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
-/* Section Headers */
-.section-header {
-  margin-bottom: 16px;
-}
-
-.section-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
-  margin: 0;
-}
-
-/* Quick Links Section */
-.quick-links-section {
-  margin-bottom: 32px;
-}
-
-.quick-links-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
-}
-
-.quick-link-card {
+.metric-card {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 20px;
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  transition: all var(--transition-base);
-  text-decoration: none;
+  padding: 24px;
   box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.quick-link-card:hover {
-  box-shadow: var(--shadow-md);
-  border-color: var(--primary-purple);
-  transform: translateY(-2px);
-}
-
-.quick-link-icon {
+.metric-icon {
   font-size: 32px;
-  flex-shrink: 0;
   width: 48px;
   height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--gray-100);
+  background: #f8f9fa;
   border-radius: var(--radius-md);
-}
-
-.quick-link-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.quick-link-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
   margin-bottom: 4px;
-  letter-spacing: -0.01em;
 }
 
-.quick-link-description {
-  font-size: 13px;
+.metric-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.metric-label {
+  font-size: 14px;
   color: var(--text-secondary);
-  line-height: 1.4;
+  font-weight: 500;
 }
 
-/* Getting Started Section */
-.getting-started-section {
-  margin-bottom: 32px;
+/* Content Grid */
+.content-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
 }
 
-.getting-started-card {
+.section-card {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
@@ -262,49 +181,108 @@ const formatCurrency = (amount) => {
   box-shadow: var(--shadow-sm);
 }
 
-.getting-started-steps {
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 20px 0;
+  letter-spacing: -0.01em;
+}
+
+/* Transactions List */
+.transactions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.transaction-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.transaction-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.transaction-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.transaction-category {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.transaction-date {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.transaction-amount {
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.transaction-amount.negative {
+  color: #dc3545;
+}
+
+.transaction-amount.positive {
+  color: #00d924;
+}
+
+/* Budgets List */
+.budgets-list {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.step-item {
+.budget-item {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.step-number {
-  flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+.budget-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  background: var(--primary-purple);
-  color: white;
-  border-radius: var(--radius-full);
-  font-size: 14px;
-  font-weight: 600;
 }
 
-.step-content {
-  flex: 1;
-  padding-top: 4px;
-}
-
-.step-title {
+.budget-category {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-primary);
-  margin-bottom: 4px;
-  letter-spacing: -0.01em;
 }
 
-.step-description {
-  font-size: 14px;
+.budget-amounts {
+  font-size: 13px;
   color: var(--text-secondary);
-  line-height: 1.5;
+  font-weight: 500;
+}
+
+.budget-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.budget-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
 }
 
 /* Responsive Design */
@@ -313,40 +291,32 @@ const formatCurrency = (amount) => {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .quick-links-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .content-grid {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 768px) {
+  .page-title {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+
   .metrics-grid {
     grid-template-columns: 1fr;
     gap: 12px;
   }
 
-  .quick-links-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .quick-link-card {
-    padding: 16px;
-  }
-
-  .quick-link-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 24px;
-  }
-
-  .getting-started-card {
+  .metric-card {
     padding: 20px;
   }
 
-  .step-number {
-    width: 28px;
-    height: 28px;
-    font-size: 13px;
+  .metric-value {
+    font-size: 24px;
+  }
+
+  .section-card {
+    padding: 20px;
   }
 }
 </style>
