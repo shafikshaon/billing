@@ -26,6 +26,10 @@ export default defineConfig({
             return 'vendor'
           }
         },
+        // Add build timestamp to entry chunks for version tracking
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
       },
     },
     // Generate source maps for debugging if needed

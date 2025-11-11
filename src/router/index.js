@@ -106,4 +106,25 @@ const router = createRouter({
   ],
 })
 
+// Add error handler for chunk loading failures during navigation
+router.onError((error) => {
+  if (
+    error.message.includes('Failed to fetch dynamically imported module') ||
+    error.message.includes('Unable to preload CSS')
+  ) {
+    const hasReloaded = sessionStorage.getItem('chunk-load-reload')
+    if (!hasReloaded) {
+      console.warn('Router chunk loading failed, reloading page to fetch latest assets...')
+      sessionStorage.setItem('chunk-load-reload', 'true')
+      window.location.reload()
+    } else {
+      // Prevent infinite reload loop
+      sessionStorage.removeItem('chunk-load-reload')
+      console.error('Chunk loading failed after reload:', error)
+    }
+  } else {
+    console.error('Router error:', error)
+  }
+})
+
 export default router

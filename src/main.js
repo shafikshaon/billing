@@ -7,6 +7,23 @@ import router from './router'
 // Debug log for deployment verification
 console.log('Billing App initializing...', new Date().toISOString())
 
+// Handle chunk loading errors (when cached HTML references old chunks)
+// This prevents "Failed to fetch dynamically imported module" errors
+window.addEventListener('unhandledrejection', (event) => {
+  if (event.reason?.message?.includes('Failed to fetch dynamically imported module')) {
+    const hasReloaded = sessionStorage.getItem('chunk-load-reload')
+    if (!hasReloaded) {
+      console.warn('Chunk loading failed, reloading page to fetch latest assets...')
+      sessionStorage.setItem('chunk-load-reload', 'true')
+      window.location.reload()
+    } else {
+      // Prevent infinite reload loop - clear flag after successful load
+      sessionStorage.removeItem('chunk-load-reload')
+    }
+    event.preventDefault()
+  }
+})
+
 // Load Bootstrap via CDN (CSS + JS) before mounting the app
 ;(function ensureBootstrapCdn() {
   // Use Bootswatch Pulse theme (includes Bootstrap CSS)
