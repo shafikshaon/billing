@@ -6,13 +6,13 @@ import { resetStore } from '../store'
 
 const route = useRoute()
 
-const sectionOrder = ['main', 'transactions', 'planning', 'settings']
+const sectionOrder = ['main', 'transactions', 'planning', 'reports']
 
 const sectionTitles = {
-  main: 'HOME',
-  transactions: 'TRANSACTIONS',
-  planning: 'PRODUCTS',
-  settings: 'SETTINGS'
+  main: '',
+  transactions: 'ACCOUNTS & TRANSACTIONS',
+  planning: 'PLANNING & BUDGETS',
+  reports: 'REPORTS & ANALYTICS'
 }
 
 const groupedRoutes = computed(() => {
@@ -55,14 +55,15 @@ function onResetClick() {
     <aside class="stripe-sidebar">
       <div class="sidebar-header">
         <div class="brand">
-          <div class="brand-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M4 4H20C21.1046 4 22 4.89543 22 6V18C22 19.1046 21.1046 20 20 20H4C2.89543 20 2 19.1046 2 18V6C2 4.89543 2.89543 4 4 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M2 10H22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <span class="brand-text">Billing</span>
+          <div class="brand-icon">💰</div>
+          <span class="brand-text">Expense Tracker</span>
         </div>
+      </div>
+
+      <!-- User Profile Section -->
+      <div class="user-profile">
+        <div class="user-avatar">MSR</div>
+        <div class="user-name">Mohd. Shafikur Rahm...</div>
       </div>
 
       <nav class="sidebar-nav">
@@ -94,7 +95,13 @@ function onResetClick() {
       <header class="main-header">
         <div class="header-content">
           <div class="header-title"><slot name="title" /></div>
-          <div class="header-actions"><slot name="actions" /></div>
+          <div class="header-actions">
+            <slot name="actions" />
+            <div class="header-user">
+              <div class="header-user-avatar">MSR</div>
+              <span class="header-user-name">Mohd. Shafikur Rahman</span>
+            </div>
+          </div>
         </div>
       </header>
       <main class="main-body">
@@ -172,15 +179,8 @@ function onResetClick() {
   justify-content: center;
   width: 28px;
   height: 28px;
-  background: var(--primary-purple);
-  border-radius: var(--radius-sm);
-  color: white;
+  font-size: 20px;
   flex-shrink: 0;
-}
-
-.brand-icon svg {
-  width: 14px;
-  height: 14px;
 }
 
 .brand-text {
@@ -188,6 +188,38 @@ function onResetClick() {
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
+}
+
+/* User Profile Section */
+.user-profile {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: #635bff;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sidebar-nav {
@@ -319,8 +351,37 @@ function onResetClick() {
 
 .header-actions {
   display: flex;
-  gap: 8px;
+  gap: 16px;
   align-items: center;
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: #f8f9fa;
+  border-radius: var(--radius-full);
+}
+
+.header-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: #635bff;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.header-user-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
 }
 
 .main-body {
