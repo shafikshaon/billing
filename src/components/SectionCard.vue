@@ -57,7 +57,7 @@ defineProps({
 }
 
 .stripe-card-body {
-  padding: 0;
+  padding: 10px;
   background: #ffffff;
 }
 

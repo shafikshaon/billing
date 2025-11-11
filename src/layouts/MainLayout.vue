@@ -66,12 +66,6 @@ function onResetClick() {
         </div>
       </div>
 
-      <!-- User Profile Section -->
-      <div class="user-profile">
-        <div class="user-avatar">MSR</div>
-        <div class="user-name">Mohd. Shafikur Rahm...</div>
-      </div>
-
       <nav class="sidebar-nav">
         <template v-for="(routes, section) in groupedRoutes" :key="section">
           <div v-if="sectionTitles[section]" class="nav-section-title">{{ sectionTitles[section] }}</div>
@@ -98,18 +92,6 @@ function onResetClick() {
 
     <!-- Main Content Area -->
     <div class="main-content">
-      <header class="main-header">
-        <div class="header-content">
-          <div class="header-title"><slot name="title" /></div>
-          <div class="header-actions">
-            <slot name="actions" />
-            <div class="header-user">
-              <div class="header-user-avatar">MSR</div>
-              <span class="header-user-name">Mohd. Shafikur Rahman</span>
-            </div>
-          </div>
-        </div>
-      </header>
       <main class="main-body">
         <slot />
       </main>
