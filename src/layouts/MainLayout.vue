@@ -1,10 +1,11 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import router from '../router'
 import { resetStore } from '../store'
 
 const route = useRoute()
+const sidebarCollapsed = ref(false)
 
 const sectionOrder = ['main', 'transactions', 'planning', 'reports']
 
@@ -42,6 +43,10 @@ const groupedRoutes = computed(() => {
   return orderedGroups
 })
 
+function toggleSidebar() {
+  sidebarCollapsed.value = !sidebarCollapsed.value
+}
+
 function onResetClick() {
   if (confirm('Reset sample data? This will overwrite current data in this browser.')) {
     resetStore()
@@ -55,6 +60,7 @@ function onResetClick() {
     <aside class="stripe-sidebar">
       <div class="sidebar-header">
         <div class="brand">
+          <button class="hamburger-menu" @click="toggleSidebar">☰</button>
           <div class="brand-icon">💰</div>
           <span class="brand-text">Expense Tracker</span>
         </div>
@@ -157,29 +163,43 @@ function onResetClick() {
 }
 
 .sidebar-header {
-  padding: 20px 16px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--sidebar-border);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  cursor: pointer;
+  gap: 8px;
   transition: opacity var(--transition-fast);
 }
 
-.brand:hover {
-  opacity: 0.8;
+.hamburger-menu {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast);
+  border-radius: var(--radius-sm);
+  margin-right: 4px;
+}
+
+.hamburger-menu:hover {
+  background: var(--sidebar-hover);
 }
 
 .brand-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  font-size: 20px;
+  width: 24px;
+  height: 24px;
+  font-size: 18px;
   flex-shrink: 0;
 }
 
